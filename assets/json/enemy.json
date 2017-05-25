@@ -24,11 +24,11 @@
 ],
 
     "animations": {
-        "idle": { "frames": [8] },
-        "left": { "frames": [0,1,2,3] },
-        "right": { "frames": [4,5,6,7] },
-        "down": { "frames": [8,9,10,1] },
-        "up": { "frames": [12,13,14,15] }
+        "first": { "frames": [0] },
+        "stay": { "frames": [0,1,2,3] },
+        "swordUp": { "frames": [4,5,6,7] },
+        "attack": { "frames": [8,9,10,1] },
+        "retreat": { "frames": [12,13,14,15] }
     },
 
 },
