@@ -1,0 +1,39 @@
+{
+
+"images": [
+    "assets/img/herotatters.png"
+],
+
+"frames": [
+    [0, 0, 60, 90, 0, 0, 0],
+    [60, 0, 58, 90, 0, 0, 0],
+    [118, 0, 58, 90, 0, 0, 0],
+    [176, 0, 63, 90, 0, 0, 0],
+    [0, 90, 60, 91, 0, 0, 0],
+    [60, 90, 58, 91, 0, 0, 0],
+    [118, 90, 58, 91, 0, 0, 0],
+    [176, 90, 63, 91, 0, 0, 0],
+    [0, 181, 60, 99, 0, 0, 0],
+    [60, 181, 58, 99, 0, 0, 0],
+    [118, 181, 58, 99, 0, 0, 0],
+    [176, 181, 63, 99, 0, 0, 0],
+    [0, 280, 60, 100, 0, 0, 0],
+    [60, 280, 58, 100, 0, 0, 0],
+    [118, 280, 58, 100, 0, 0, 0],
+    [176, 280, 63, 100, 0, 0, 0]
+],
+
+"animations": {
+    "idle": { "frames": [8] },
+    "left": { "frames": [0,1,2,3] },
+    "right": { "frames": [4,5,6,7] },
+    "down": { "frames": [8,9,10,1] },
+    "up": { "frames": [12,13,14,15] }
+},
+
+"texturepacker": [
+        "SmartUpdateHash: $TexturePacker:SmartUpdate:889df6be793193dc2c28e269ab3bd4f4:4cb701f489c4b6c6b760eb21637d7bbc:1eb013cfb0caae243aac0998651ac8c3$",
+        "Created with TexturePacker (https://www.codeandweb.com/texturepacker) for EaselJS"
+]
+
+}

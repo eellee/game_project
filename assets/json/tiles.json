@@ -1,0 +1,21 @@
+{
+
+  "images": ["assets/img/geometry.png"],
+  "frames": {"width":45, "height":45, "regX": 0, "regY":0},
+  "animations": {
+    "north": [0],
+    "southEast": [1],
+    "south":[2],
+    "west":[3],
+    "northEast":[4],
+    "wholeFloor":[5],
+    "connectVertical":[6],
+    "brokenFloor":[7],
+    "northWest":[8],
+    "connectHorizontal":[9],
+    "middle":[10],
+    "southWest":[11],
+    "wall":[12],
+    "east":[13]
+  }
+}
