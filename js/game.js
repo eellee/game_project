@@ -1,6 +1,12 @@
-var stage, queue, player, grid = [];
+var stage, queue, player, grid = [], level;
 var levels = [], currentLevel =-1, tileSize = 45;
-
+var keys = {
+    left: false,
+    right: false,
+    up: false,
+    down: false
+};
+var settings = {playerSpeed: 2};
 function preload() {
     stage = new createjs.Stage("myCanvas");
 
@@ -21,7 +27,6 @@ function queueComplete() {
     var lvl = queue.getResult("levelJson");
     levels = lvl.levels;
 
-    window.onkeyup = keyUp;
 
     createjs.Ticker.setFPS(60);
     createjs.Ticker.on('tick', updateScene);
@@ -34,9 +39,11 @@ function setupLevel() {
 
     var spritesheet = new createjs.SpriteSheet(queue.getResult('geometrySprites'));
 
-    var level = levels[currentLevel].tiles;
+    level = levels[currentLevel].tiles;
     grid = [];
 
+    window.addEventListener('keyup', keyLifted);
+    window.addEventListener('keydown', keyPressed);
 
     for (var i = 0; i < level.length; i++) {
         grid.push([]);
@@ -111,65 +118,137 @@ function setupLevel() {
     }
     var playerSS = new createjs.SpriteSheet(queue.getResult("playerRagsSS"));
     player = new createjs.Sprite(playerSS, "idle");
-    player.x = playerCol * tileSize;
-    player.y = playerRow * tileSize;
+    player.x = playerCol + 2 * tileSize;
+    player.y = playerRow + 4* tileSize;
+    player.width =  60;
+    player.height = 90;
     player.regX = 0;
-    player.regY = 45;
+    player.regY = 90;
     player.row = playerRow;
     player.col = playerCol;
     stage.addChild(player);
 
 }
 function updateScene(e) {
+    movePlayer();
     stage.update(e)
 }
 
-function keyUp(e) {
+function keyLifted(e) {
+    player.gotoAndPlay('idle');
     switch (e.keyCode) {
+        case 32:
+            keys.space = false;
+            break;
         case 37:
-            moveTo(0, -1);
+            keys.left = false;
             break;
         case 38:
-            moveTo(-1, 0);
+            keys.up = false;
             break;
         case 39:
-            moveTo(0, 1);
+            keys.right = false;
             break;
         case 40:
-            moveTo(1, 0);
+            keys.down = false;
             break;
     }
 }
 
-function moveTo(rowModifier, colModifier){
-    var newRow = player.row+rowModifier;
-    var newCol = player.col+colModifier;
-    if(walkable(newRow, newCol)){
-        player.row=newRow;
-        player.col=newCol;
-        player.x=newCol*tileSize;
-        player.y=newRow*tileSize;
-    } else {
-        createjs.Sound.play("error");
+function keyPressed(e) {
+    switch (e.keyCode) {
+        case 32:
+            keys.space = true;
+            break;
+        case 37:
+            keys.left = true;
+            break;
+        case 38:
+            keys.up = true;
+            break;
+        case 39:
+            keys.right = true;
+            break;
+        case 40:
+            keys.down = true;
+            break;
+    }
+}
+function movePlayer() {
+
+    if (keys.left) {
+        let potentialPositionX = player.x - settings.playerSpeed;
+        let tileX = Math.floor(potentialPositionX / tileSize);
+        let potentialPositionY = player.y;
+        let tileY = Math.floor(potentialPositionY / tileSize);
+
+        if (walkable(tileY,tileX)) {
+            player.x -= settings.playerSpeed;
+        }
+
+        if (player.currentDirection != "left") {
+            player.currentDirection = "left";
+            player.gotoAndPlay('left');
+        }
+    }
+    else if (keys.right) {
+        let potentialPositionX = player.x + settings.playerSpeed;
+        let tileX = Math.floor((potentialPositionX + player.width) / tileSize);
+        let potentialPositionY = player.y;
+        let tileY = Math.floor(potentialPositionY / tileSize);
+
+        if (walkable(tileY,tileX)) {
+            player.x += settings.playerSpeed;
+        }
+        if (player.currentDirection != "right") {
+            player.currentDirection = "right";
+            player.gotoAndPlay('right');
+        }
+    }
+    else if (keys.up) {
+        let potentialPositionX = player.x;
+        let tileXLeft = Math.floor((potentialPositionX) / tileSize);
+        let tileXRight = Math.floor((potentialPositionX + player.width) / tileSize);
+        let potentialPositionY = player.y - settings.playerSpeed;
+        let tileY = Math.floor(potentialPositionY / tileSize);
+
+        if (walkable(tileY,tileXLeft) && walkable(tileY,tileXRight)) {
+            player.y -= settings.playerSpeed;
+        }
+        if (player.currentDirection != "up") {
+            player.currentDirection = "up";
+            player.gotoAndPlay('up');
+        }
+
+    }
+    else if (keys.down) {
+        let potentialPositionX = player.x;
+        let tileXLeft = Math.floor((potentialPositionX) / tileSize);
+        let tileXRight = Math.floor((potentialPositionX + player.width) / tileSize);
+        let potentialPositionY = player.y + settings.playerSpeed;
+        let tileY = Math.floor(potentialPositionY / tileSize);
+
+        if (walkable(tileY,tileXLeft) && walkable(tileY,tileXRight)) {
+            player.y += settings.playerSpeed;
+        }
+        if (player.currentDirection != "down") {
+            player.currentDirection = "down";
+            player.gotoAndPlay('down');
+        }
     }
 }
 
-function walkable(r, c) {
-    var nonWalkable = [0,1,2,3,4,6,8,9,10,11,12,13];
-    console.log(grid[r][c].tileNumber)
+function walkable(y, x) {
+    var walkableTileTypes = [5,7];
+    var targetTileNumber = grid[y][x].tileNumber;
 
-    if (nonWalkable.indexOf(grid[r][c].tileNumber) != -1) {
-
+    console.log('x:' + x + ' y:' + y + ' targettype:' + targetTileNumber);
+    if (walkableTileTypes.indexOf(targetTileNumber) != -1) {
+        return true;
     } else {
-        switch (grid[r][c].tileNumber){
-            case 5:
-                return true;
-                break;
-            case 7:
-                return true;
-                break;
-        }
+        return false;
     }
+
 }
 
 window.addEventListener('load', preload);
