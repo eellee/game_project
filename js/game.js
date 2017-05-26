@@ -1,12 +1,15 @@
-var stage, queue, player, grid = [], level;
-var levels = [], currentLevel =-1, tileSize = 45;
+var stage, queue, player, grid = [], level, HUDContainer;
+var levels = [], currentLevel =-1, tileSize = 45, currentAnimation = "idle";
 var keys = {
     left: false,
     right: false,
     up: false,
     down: false
 };
-var settings = {playerSpeed: 2};
+var settings = {
+    playerSpeed: 2,
+    lives: 3
+};
 function preload() {
     stage = new createjs.Stage("myCanvas");
 
@@ -26,7 +29,6 @@ function preload() {
 function queueComplete() {
     var lvl = queue.getResult("levelJson");
     levels = lvl.levels;
-
 
     createjs.Ticker.setFPS(60);
     createjs.Ticker.on('tick', updateScene);
@@ -118,8 +120,8 @@ function setupLevel() {
     }
     var playerSS = new createjs.SpriteSheet(queue.getResult("playerRagsSS"));
     player = new createjs.Sprite(playerSS, "idle");
-    player.x = playerCol + 2 * tileSize;
-    player.y = playerRow + 4* tileSize;
+    player.x = playerCol * tileSize;
+    player.y = playerRow * tileSize;
     player.width =  60;
     player.height = 90;
     player.regX = 0;
@@ -127,6 +129,12 @@ function setupLevel() {
     player.row = playerRow;
     player.col = playerCol;
     stage.addChild(player);
+
+    HUDContainer = new createjs.Container();
+    HUDContainer.x = 25;
+    HUDContainer.y = 25;
+    stage.addChild(HUDContainer);
+    createHUD();
 
 }
 function updateScene(e) {
@@ -186,8 +194,8 @@ function movePlayer() {
             player.x -= settings.playerSpeed;
         }
 
-        if (player.currentDirection != "left") {
-            player.currentDirection = "left";
+        if (player.currentAnimation != "left") {
+            player.currentAnimation = "left";
             player.gotoAndPlay('left');
         }
     }
@@ -200,8 +208,8 @@ function movePlayer() {
         if (walkable(tileY,tileX)) {
             player.x += settings.playerSpeed;
         }
-        if (player.currentDirection != "right") {
-            player.currentDirection = "right";
+        if (player.currentAnimation != "right") {
+            player.currentAnimation = "right";
             player.gotoAndPlay('right');
         }
     }
@@ -215,8 +223,8 @@ function movePlayer() {
         if (walkable(tileY,tileXLeft) && walkable(tileY,tileXRight)) {
             player.y -= settings.playerSpeed;
         }
-        if (player.currentDirection != "up") {
-            player.currentDirection = "up";
+        if (player.currentAnimation != "up") {
+            player.currentAnimation = "up";
             player.gotoAndPlay('up');
         }
 
@@ -231,8 +239,8 @@ function movePlayer() {
         if (walkable(tileY,tileXLeft) && walkable(tileY,tileXRight)) {
             player.y += settings.playerSpeed;
         }
-        if (player.currentDirection != "down") {
-            player.currentDirection = "down";
+        if (player.currentAnimation != "down") {
+            player.currentAnimation = "down";
             player.gotoAndPlay('down');
         }
     }
@@ -242,13 +250,29 @@ function walkable(y, x) {
     var walkableTileTypes = [5,7];
     var targetTileNumber = grid[y][x].tileNumber;
 
-    console.log('x:' + x + ' y:' + y + ' targettype:' + targetTileNumber);
+    //console.log('x:' + x + ' y:' + y + ' targettype:' + targetTileNumber);
     if (walkableTileTypes.indexOf(targetTileNumber) != -1) {
         return true;
     } else {
         return false;
     }
+}
+
+function createHUD() {
+    for (var i = 0; i < settings.lives; i++)
+    {
+        var heart = new createjs.Shape();
+        heart.graphics.beginFill("red");
+        heart.graphics.moveTo(0, -12).curveTo(1, -20, 8, -20).curveTo(16, -20, 16, -10).curveTo(16, 0, 0, 12);
+        heart.graphics.curveTo(-16, 0, -16, -10).curveTo(-16, -20, -8, -20).curveTo(-1, -20, 0, -12);
+        heart.x += i * 50 + 10;
+
+        HUDContainer.addChild(heart)
+    }
+
+
 
 }
+
 
 window.addEventListener('load', preload);

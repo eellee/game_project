@@ -1,0 +1,24 @@
+{
+
+"images": [
+    "assets/img/chest.png"
+],
+
+"frames": [
+    [1, 1, 37, 45, 0, 0, 0],
+    [40, 1, 36, 42, 0, 0, -3],
+    [40, 45, 36, 38, 0, 0, -7],
+    [1, 48, 36, 33, 0, 0, -12]
+],
+
+"animations": {
+    "chestClosed": { "frames": [3] },
+    "chestOpen": { "frames": [3,1,2,0] }
+},
+
+"texturepacker": [
+        "SmartUpdateHash: $TexturePacker:SmartUpdate:73f87cccaa304254ce0be4caa9575430:7c9be7a5c9835f7ac25e4c042b7d2021:d0951faa14b608797f96616a345e52d5$",
+        "Created with TexturePacker (https://www.codeandweb.com/texturepacker) for EaselJS"
+]
+
+}
