@@ -1,15 +1,12 @@
-var stage, queue, player, grid = [], level, HUDContainer;
-var levels = [], currentLevel =-1, tileSize = 45, currentAnimation = "idle";
+var stage, queue, player, grid = [], soldiers=[] ;
+var levels = [], currentLevel =0, tileSize = 45, currentAnimation = "idle", followXena=false;
 var keys = {
     left: false,
     right: false,
     up: false,
     down: false
 };
-var settings = {
-    playerSpeed: 2,
-    lives: 3
-};
+var settings = {playerSpeed: 2, enemySpeed:2};
 function preload() {
     stage = new createjs.Stage("myCanvas");
 
@@ -22,13 +19,15 @@ function preload() {
             "assets/img/geometry.png",
             {id: "levelJson", src: "assets/json/levels.json"},
             {id: "geometrySprites", src: "assets/json/tiles.json"},
-            {id: "playerRagsSS", src: "assets/json/herotatters.json"}
+            {id: "playerRagsSS", src: "assets/json/herotatters.json"},
+            {id: "enemySS", src:"assets/json/soldier.json"}
         ]
     );
 }
 function queueComplete() {
     var lvl = queue.getResult("levelJson");
     levels = lvl.levels;
+
 
     createjs.Ticker.setFPS(60);
     createjs.Ticker.on('tick', updateScene);
@@ -53,7 +52,6 @@ function setupLevel() {
             grid[i].push(null);
         }
     }
-
     var playerCol, playerRow;
     for(var row = 0; row < level.length; row++){
         for(var col = 0; col < level[row].length; col++) {
@@ -120,8 +118,8 @@ function setupLevel() {
     }
     var playerSS = new createjs.SpriteSheet(queue.getResult("playerRagsSS"));
     player = new createjs.Sprite(playerSS, "idle");
-    player.x = playerCol * tileSize;
-    player.y = playerRow * tileSize;
+    player.x = playerCol + 2 * tileSize;
+    player.y = playerRow + 4* tileSize;
     player.width =  60;
     player.height = 90;
     player.regX = 0;
@@ -129,16 +127,12 @@ function setupLevel() {
     player.row = playerRow;
     player.col = playerCol;
     stage.addChild(player);
-
-    HUDContainer = new createjs.Container();
-    HUDContainer.x = 25;
-    HUDContainer.y = 25;
-    stage.addChild(HUDContainer);
-    createHUD();
+    addEnemies();
 
 }
 function updateScene(e) {
     movePlayer();
+    //moveEnemies();
     stage.update(e)
 }
 
@@ -256,23 +250,62 @@ function walkable(y, x) {
     } else {
         return false;
     }
+
 }
+/*enemies appear*/
+function addEnemies() {
+    var enemySS = new createjs.SpriteSheet(queue.getResult("enemySS"));
+    for(var i=0; i < 4; i++){
+        var enemy = new createjs.Sprite(enemySS, "first");
+        enemy.x= Math.floor(Math.random()*900);
+        enemy.y=(Math.floor(Math.random()*900)+100)*-1;
+        enemy.width = player.width;
+        enemy.height = player.height;
+        stage.addChild(enemy);
+        soldiers.push(enemy);
+        moveEnemies();
+        followPlayer();
 
-function createHUD() {
-    for (var i = 0; i < settings.lives; i++)
-    {
-        var heart = new createjs.Shape();
-        heart.graphics.beginFill("red");
-        heart.graphics.moveTo(0, -12).curveTo(1, -20, 8, -20).curveTo(16, -20, 16, -10).curveTo(16, 0, 0, 12);
-        heart.graphics.curveTo(-16, 0, -16, -10).curveTo(-16, -20, -8, -20).curveTo(-1, -20, 0, -12);
-        heart.x += i * 50 + 10;
-
-        HUDContainer.addChild(heart)
     }
-
-
-
 }
+/*enemies move*/
+function moveEnemies() {
+    for (var i = soldiers.length - 1; i >= 0; i--) {
+
+        if (soldiers[i].y > stage.canvas.height) {
+            soldiers[i].y = (Math.floor(Math.random() * 900) + 100) * -1;
+            soldiers[i].x = Math.floor(Math.random() * 900);
+
+        }
+    }
+}
+/*enemies follow player*/
+function followPlayer(){
+    for (var j=soldiers.length-1; j>=0; j--){
+        if (soldiers[j].y>stage.canvas.height)
+        {
+            soldiers[j].y=(Math.floor(Math.random()*900)+100)*-1;
+            soldiers[j].x=Math.floor(Math.random()*900);
+
+        }
+        else if(soldiers[j].x<player.x && followXena===true)
+        {
+            soldiers[j].x+=settings.enemySpeed;
+        }
+        else if (soldiers[j].x>player.x && followXena===true){
+            soldiers[j].x-=settings.enemySpeed;
+        }
+        else if (soldiers[j].y>player.y && followXena===true){
+            soldiers[j].y-=settings.enemySpeed;}
+
+        else if (soldiers[j].y<player.y && followXena===true){
+            soldiers[j].y+=settings.enemySpeed;
+        }
+    }
+}
+/*level change*/
+/*collision check*/
+/*sword moving*/
 
 
 window.addEventListener('load', preload);
