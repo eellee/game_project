@@ -1,4 +1,5 @@
 var stage, queue, player, grid = [], level, HUDContainer;
+var bullets = [];
 var levels = [], currentLevel =-1, tileSize = 45, currentAnimation = "idle";
 var keys = {
     left: false,
@@ -8,8 +9,21 @@ var keys = {
 };
 var settings = {
     playerSpeed: 2,
+    bulletSpeed: 2,
     lives: 3
+   // muted: false -> add song
+
 };
+
+//eliana
+/*function hitTest(rect1, rect2) {
+    if (rect1.x >= rect2.x + rect2.width || rect1.x + rect1.width <= rect2.x ||
+        rect1.y >= rect2.y + rect2.height || rect1.y + rect1.height <= rect2.y) {
+        return false;
+    }
+    return true;
+}*/
+
 function preload() {
     stage = new createjs.Stage("myCanvas");
 
@@ -23,6 +37,7 @@ function preload() {
             {id: "levelJson", src: "assets/json/levels.json"},
             {id: "geometrySprites", src: "assets/json/tiles.json"},
             {id: "playerRagsSS", src: "assets/json/herotatters.json"}
+            {id: "enemies2level", src: "assets/json/enemies-2.json"}
         ]
     );
 }
@@ -245,6 +260,7 @@ function movePlayer() {
         }
     }
 }
+
 
 function walkable(y, x) {
     var walkableTileTypes = [5,7];
