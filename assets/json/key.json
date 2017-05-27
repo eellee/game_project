@@ -1,0 +1,9 @@
+{
+
+  "images": ["assets/img/key.png"],
+  "frames": {"width":45, "height":45, "regX": 0, "regY":0},
+  "animations": {
+    "emptyKey": [0],
+    "key": [1]
+  }
+}
