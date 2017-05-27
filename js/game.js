@@ -20,7 +20,9 @@ function preload() {
             {id: "levelJson", src: "assets/json/levels.json"},
             {id: "geometrySprites", src: "assets/json/tiles.json"},
             {id: "playerRagsSS", src: "assets/json/herotatters.json"},
-            {id: "enemySS", src:"assets/json/soldier.json"}
+            {id: "enemySS", src:"assets/json/soldier.json"},
+            {id: "touch", src:"assets/sound/touchEnemy.wav"},
+            {id: "hit", src:"assets/sound/enemyHit.wav"},
         ]
     );
 }
@@ -135,6 +137,7 @@ function updateScene(e) {
     movePlayer();
     moveEnemies();
     hittingXena();
+    weaponsMoving();
     stage.update(e)
 }
 
@@ -258,10 +261,10 @@ function walkable(y, x) {
 /*enemies appear*/
 function addEnemies() {
     var enemySS = new createjs.SpriteSheet(queue.getResult("enemySS"));
-    for(var i=0; i <10; i++){
+    for(var i=0; i <20; i++){
         var enemy = new createjs.Sprite(enemySS, "first");
-        enemy.x = 10 * tileSize;
-        enemy.y = 10* tileSize;
+        enemy.x = Math.floor(Math.random()*900) + 10 * tileSize;
+        enemy.y = (Math.floor(Math.random()*900)+100) + 10* tileSize;
         player.regX = 0;
         player.regY = 90;
         enemy.width = player.width;
@@ -326,33 +329,49 @@ function hitTest(rect1,rect2){
 }
 
 //hittest between xena and enemy
-function hittingXena(){
-    for (var i= soldiers.length-1; i>=0; i--){
-        if (hitTest(player, soldiers[i]) ==true){
-           stage.removeChild(soldiers[i]);
+function hittingXena() {
+    for (var i = soldiers.length - 1; i >= 0; i--) {
+        if (hitTest(player, soldiers[i]) == true) {
+            stage.removeChild(soldiers[i]);
+            soldiers.splice(i, 1);
+            //TODO loose a life
+            createjs.Sound.play("touch");
         }
     }
+    //soldiers and weapons hitTest
+    for (var s = soldiers.length - 1; s >= 0; s--) {
+        for (var w = weapon - length - 1; w >= 0; w--) {
+            if (hitTest(soldiers[s], weapon[w]) == true) {
 
+                stage.removeChild(soldiers[s]);
+                soldiers.splice(s, 1);
+                stage.removeChild(weapon[w]);
+                weapon.slice(w, 1);
+                createjs.Sound.play("hit");
+            }
+        }
+    }
 }
 //xena fights back
 function defend() {
     var attack = new createjs.Shape();
     attack.graphics.beginFill('darkblue').drawCircle(0, 0, 10);
-    attack.x = player.x;
+    attack.x = player.x+player.width/2;
     attack.y = player.y;
-    attack.width = 10;
-    attack.height = 10;
+    attack.width = 20;
+    attack.height = 20;
     stage.addChild(attack);
     weapon.push(attack);
-   weaponsMoving();
+
 }
 function weaponsMoving(){
-    for (var j= weapon.length-1; j>=0; j--){
-        weapon[j].y-=700;
+    for (var i= weapon.length-1; i>=0; i--){
+        weapon[i].x++;
+        weapon[i].y++;
         //delete weapons after they exit canvas
-        if (weapon[j].y < -30){
-            stage.removeChild(weapon[j]);
-            weapon.splice(j, 1);
+        if (weapon[i].y < -30){
+            stage.removeChild(weapon[i]);
+            weapon.splice(i, 1);
         }
     }
 }
