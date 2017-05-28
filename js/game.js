@@ -1,7 +1,7 @@
 var stage, queue, player, grid = [], level, HUDContainer;
 var levels = [], currentLevel =0, tileSize = 45, currentAnimation = "idle";
 var bullets = [];
-var enemiesSS =[];
+var enemiesSecond =[];
 var keys = {
     left: false,
     right: false,
@@ -27,7 +27,7 @@ function preload() {
             {id: "levelJson", src: "assets/json/levels.json"},
             {id: "geometrySprites", src: "assets/json/tiles.json"},
             {id: "playerRagsSS", src: "assets/json/herotatters.json"},
-            {id: "enemiesSecond", src: "assets/json/enemies.json"}
+            {id: "enemiesSecond", src: "json/enemiesSecondLevel.json"},
         ]
     );
 }
@@ -47,6 +47,7 @@ function setupLevel() {
     currentLevel++;
 
     var spritesheet = new createjs.SpriteSheet(queue.getResult('geometrySprites'));
+
 
     level = levels[currentLevel].tiles;
     grid = [];
@@ -136,6 +137,7 @@ function setupLevel() {
     player.row = playerRow;
     player.col = playerCol;
     stage.addChild(player);
+    addEnemies();
 
     HUDContainer = new createjs.Container();
     HUDContainer.x = 25;
@@ -144,10 +146,6 @@ function setupLevel() {
     createHUD();
 
 }
-function updateScene(e) {
-    movePlayer();
-    stage.update(e)
-}
 
 function keyLifted(e) {
     "use strict";
@@ -155,7 +153,7 @@ function keyLifted(e) {
     player.gotoAndPlay('idle');
     switch (e.keyCode) {
         case 32:
-            fire();
+            shoot();
             keys.space = false;
         case 37:
             keys.left = false;
@@ -281,17 +279,17 @@ function createHUD() {
 
 }
 
-//create enemy on specific level 0?
+//create enemy specificly level 0?
 function addEnemies(){
     var enemiesSecond = new createjs.SpriteSheet(queue.getResult("enemiesSecond"));
     for(var i= 0; i < 20; i++){
-        var enemies = new createjs.Sprite("enemiesSecond", "rock-2.png");
-        enemies.width = 60;
-        enemies.height = 59;
-        enemies.x = Math.floor(Math.random()*900);
-        enemies.y = Math.floor(Math.random()*900);
-        stage.addChild(enemies);
-        enemies.push(enemies);
+        var enemyOne = new createjs.Sprite(enemiesSecond, "rock");
+        enemyOne.width = 60;
+        enemyOne.height = 59;
+        enemyOne = Math.floor(Math.random()*900);
+        enemyOne = Math.floor(Math.random()*900);
+        stage.addChild(enemyOne);
+        enemyOne.push(enemyOne);
     }
 
 }
@@ -311,8 +309,8 @@ function moveEnemies() {
 }
 
 
-function fire() {
-    console.log("FIRE!");
+function shoot() {
+    console.log("SHOOT!");
 
     var temp = new createjs.Shape();
     temp.graphics.beginFill('#FFF').drawCircle(0, 0, 2);
@@ -337,6 +335,15 @@ function moveBullets() {
     }
 }
 
+function checkCollision() {
+    for (var i = enemies.length - 1; i >= 0; i--) {
+        if (hitTest(player, enemies[i])) {
+            settings.lives--;
+            stage.removeChild(enemies[i]);
+            enemies.splice(i, 1);
+            if (settings.heroLives <= 0) {
+                console.log("DEAD");
+
 
 function hitTest(rect1, rect2) {
     if (rect1.x >= rect2.x + rect2.width || rect1.x + rect1.width <= rect2.x ||
@@ -345,5 +352,13 @@ function hitTest(rect1, rect2) {
     }
 }
 
+                function updateScene(e) {
+                    moveBullets();
+                    movePlayer();
+                    moveEnemies();
+                    checkCollision();
+                    stage.update(e)
+                }
 
-        window.addEventListener('load', preload);
+
+window.addEventListener('load', preload);
