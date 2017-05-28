@@ -283,7 +283,7 @@ function createHUD() {
 function addEnemies(){
     var enemiesSecond = new createjs.SpriteSheet(queue.getResult("enemiesSecond"));
     for(var i= 0; i < 20; i++){
-        var enemyOne = new createjs.Sprite(enemiesSecond, "rock");
+        var enemyOne = new createjs.Sprite(enemiesSecond);
         enemyOne.width = 60;
         enemyOne.height = 59;
         enemyOne = Math.floor(Math.random()*900);
@@ -297,11 +297,11 @@ function addEnemies(){
 function moveEnemies() {
     console.log("moveEnemies called");
 
-    for (var i = enemies("fire", "ghost", "rock"); i >= 0; i--) {
-        enemies[i].y += settings.enemySpeed;
-        if (enemies[i].y > stage.canvas.height) {
-            enemies[i].y = Math.floor(Math.random() * 900);
-            enemies[i].x = Math.floor(Math.random() * 900);
+    for (var i = enemiesSecond("fire", "ghost", "rock"); i >= 0; i--) {
+        enemiesSecond[i].y += settings.enemySpeed;
+        if (enemiesSecond[i].y > stage.canvas.height) {
+            enemiesSecond[i].y = Math.floor(Math.random() * 900);
+            enemiesSecond[i].x = Math.floor(Math.random() * 900);
         }
 
 
@@ -343,6 +343,10 @@ function checkCollision() {
             enemies.splice(i, 1);
             if (settings.heroLives <= 0) {
                 console.log("DEAD");
+            }
+        }
+    }
+}
 
 
 function hitTest(rect1, rect2) {
