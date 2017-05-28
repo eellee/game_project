@@ -1,4 +1,4 @@
-var stage, queue, player, grid = [], level, HUDContainer;
+var stage, queue, player, grid = [], level, HUDContainer, guards=[];
 var levels = [], currentLevel =-1, tileSize = 45, currentAnimation = "idle";
 var keys = {
     left: false,
@@ -10,9 +10,11 @@ var keys = {
 var settings = {
     playerSpeed: 2,
     lives: 3,
-    gamePaused: false
+    gamePaused: false,
+    hearts: {},
+    lastInjured: new Date()
 };
-var key, cellDoor, HUDKey, npc;
+var key, HUDKey, npc, chest, weapon, HUDWeapon;
 var dialogue = {
     speechStage: 0,
     textContainer: {},
@@ -26,6 +28,11 @@ var dialogue = {
     lastChanged: {}
 
 };
+var guardInit = [
+    [6, 10, "right", 6, 14],
+    [14, 13, "left", 6, 14]
+
+];
 function preload() {
     stage = new createjs.Stage("myCanvas");
 
@@ -40,7 +47,9 @@ function preload() {
             {id: "levelJson", src: "assets/json/levels.json"},
             {id: "geometrySprites", src: "assets/json/tiles.json"},
             {id: "playerRagsSS", src: "assets/json/herotatters.json"},
+            {id: "guardSS", src: "assets/json/guard.json"},
             {id: "keySS", src: "assets/json/key.json"},
+            {id: "weaponSS", src: "assets/json/weapon.json"},
             {id: "chestSS", src: "assets/json/chest.json"},
             {id: "keyPickup", src: "assets/audio/wildweasel_keypickup.wav"} //Freesound.org
         ]
@@ -164,7 +173,14 @@ function setupLevel() {
     }
     // =============================================================
     // LEVEL 1 SPECIFIC
-    createLevelItems();
+    var chestSS = new createjs.SpriteSheet(queue.getResult("chestSS"));
+    chest = new createjs.Sprite(chestSS, "chestClosed");
+    chest.x = 10 * tileSize;
+    chest.y = 10 * tileSize;
+    stage.addChild(chest);
+
+    settings.itemsSpawned = false;
+
     spawnNPC();
     spawnGuards();
     // =============================================================
@@ -180,6 +196,7 @@ function setupLevel() {
     player.col = playerCol;
     player.hasKey = false;
     player.isMoving = false;
+    player.isAlive = true;
     player.dialogueStarted = false;
     stage.addChild(player);
 
@@ -192,12 +209,18 @@ function setupLevel() {
 }
 function updateScene(e) {
     movePlayer();
+
+    //===================
+    // Level 1
+    moveGuards();
+    //===================
+
     stage.update(e)
 }
 
 function keyLifted(e) {
     player.isMoving = false;
-    player.gotoAndPlay('idle');
+    player.gotoAndStop('idle');
     switch (e.keyCode) {
         case 13:
             keys.enter = false;
@@ -332,7 +355,7 @@ function playerHitTest(object) {
         playerTileY = Math.floor(player.y / tileSize);
     var objectTileX = Math.floor(object.x / tileSize), objectTileY = Math.floor(object.y / tileSize);
 
-    console.log("PlayerTileXRight: " + playerTileXRight + ", " + "PlayerTileXLeft: " + playerTileXLeft + ", " + "Player tileY: " + playerTileY + " / " + "Object tileX: " + objectTileX + ", " + "Object tileY: " + objectTileY);
+    //console.log("PlayerTileXRight: " + playerTileXRight + ", " + "PlayerTileXLeft: " + playerTileXLeft + ", " + "Player tileY: " + playerTileY + " / " + "Object tileX: " + objectTileX + ", " + "Object tileY: " + objectTileY);
 
     //if (rect1TileX == objectTileX && rect1TileY == objectTileY){
     //    return true;
@@ -350,7 +373,7 @@ function createHUD() {
         heart.graphics.curveTo(-16, 0, -16, -10).curveTo(-16, -20, -8, -20).curveTo(-1, -20, 0, -12);
         heart.x += i * 50 + 10;
 
-        HUDContainer.addChild(heart)
+        settings.hearts[i] = HUDContainer.addChild(heart);
     }
 
     var keySS = new createjs.SpriteSheet(queue.getResult("keySS"));
@@ -360,6 +383,7 @@ function createHUD() {
     HUDContainer.addChild(HUDKey);
     stage.addChild(HUDKey);
 }
+
 function spawnNPC() {
     npc = new createjs.Bitmap("assets/img/npc.png");
     npc.x = 17 * tileSize;
@@ -424,25 +448,64 @@ function updateDialogue(){
 
     }
 }
-function createLevelItems(){
-    /*
+function spawnItems() {
+    settings.itemsSpawned = true;
     var keySS = new createjs.SpriteSheet(queue.getResult("keySS"));
     key = new createjs.Sprite(keySS, "key");
-    key.x = 13 * tileSize;
-    key.y = 3 * tileSize;
-    key.width = 45;
-    key.height = 45;
+    key.x = 10 * tileSize;
+    key.y = 10 * tileSize;
     stage.addChild(key);
-    */
 
-    var chestSS = new createjs.SpriteSheet(queue.getResult("chestSS"));
-    var chest = new createjs.Sprite(chestSS, "chestClosed");
-    chest.x = 10 * tileSize;
-    chest.y = 10 * tileSize;
-    stage.addChild(chest);
+    createjs.Tween.get(key, {loop: false})
+        .to({x: 6 * tileSize, rotation: 360}, 1000);
+
+    var weaponSS = new createjs.SpriteSheet(queue.getResult("weaponSS"));
+    weapon = new createjs.Sprite(weaponSS, "weapon");
+    weapon.x = 10 * tileSize;
+    weapon.y = 10 * tileSize;
+    stage.addChild(weapon);
+    createjs.Tween.get(weapon, {loop: false})
+        .to({x: 14 * tileSize, rotation: 360}, 1000);
+}
+function spawnGuards() {
+    var guardSS = new createjs.SpriteSheet(queue.getResult("guardSS"));
+
+    for (var i = 0; i < guardInit.length; i++)
+    {
+        var guard = new createjs.Sprite(guardSS, "idle");
+        guard.regY = 90;
+        guard.x = guardInit[i][0] * tileSize;
+        guard.y = guardInit[i][1] * tileSize;
+        guard.direction = guardInit[i][2];
+        guard.minX = guardInit[i][3];
+        guard.maxX = guardInit[i][4];
+        guard.gotoAndPlay(guardInit[i][2]);
+        stage.addChild(guard);
+        guards.push(guard);
+    }
+}
+function moveGuards(){
+    for (var i = guards.length - 1; i >= 0; i--){
+        if ((guards[i].x < guards[i].minX * tileSize && guards[i].direction == "left")
+            || (guards[i].x > guards[i].maxX * tileSize && guards[i].direction == "right")) {
+            if (guards[i].x < guards[i].minX * tileSize) {
+                guards[i].direction = "right";
+                guards[i].gotoAndPlay("right");
+            } else {
+                guards[i].direction = "left";
+                guards[i].gotoAndPlay("left");
+            }
+        } else {
+            if (guards[i].direction == "left") {
+                guards[i].x--;
+            } else {
+                guards[i].x++;
+            }
+        }
+    }
 }
 function handleCollisions(){
-    if (playerHitTest((grid[4][16] || grid[5][16] || grid[5][17]) || grid[5][18]) && !player.hasKey) {
+    if (playerHitTest((grid[4][16] || grid[5][16] || grid[5][17]) || grid[5][18]) && !player.hasKey) { // Prisoner collision
         if (!player.dialogueStarted)
         {
             player.dialogueStarted = true;
@@ -453,12 +516,7 @@ function handleCollisions(){
             updateDialogue();
         }
     }
-/*    if (playerHitTest(key) && !player.hasKey){
-        stage.removeChild(key);
-        HUDKey.gotoAndPlay('key');
-        player.hasKey = true;
-    }*/
-    if (playerHitTest((grid[5][15]) || grid[5][16])  && player.hasKey){
+    if (playerHitTest((grid[5][15]) || grid[5][16])  && player.hasKey){ // First door collision
         grid[7][15].gotoAndPlay('wholeFloor');
         grid[7][15].tileNumber = 5;
         grid[6][15].gotoAndPlay('wholeFloor');
@@ -469,6 +527,56 @@ function handleCollisions(){
         grid[7][16].tileNumber = 5;
 
         HUDKey.gotoAndPlay('emptyKey');
+    }
+
+    for (var i = 0; i < guards.length; i++)     // Guards collision
+    {
+        var guardPosX = Math.floor(guards[i].x / tileSize);
+
+        if(playerHitTest(grid[guardInit[i][1]][guardPosX])){
+            var elapsed = new Date() - settings.lastInjured;
+
+            if (elapsed > 1000){
+                console.log(settings.lives);
+                settings.lives--;
+                settings.lastInjured = new Date();
+                HUDContainer.removeChild(settings.hearts[settings.lives]);
+
+                if (settings.lives <= 0 && player.isAlive) {
+                    player.isAlive = false;
+                    console.log("Dead")
+                } else {
+                    switch (player.currentAnimation) {
+                        case "right":
+                            player.gotoAndPlay('rightHit');
+                            break;
+                        case "left":
+                            player.gotoAndPlay('leftHit');
+                            break;
+                        case "up":
+                            player.gotoAndPlay('upHit');
+                            break;
+                        case "down":
+                            player.gotoAndPlay('downHit');
+                            break;
+                    }
+                }
+            }
+        }
+    }
+
+    if(playerHitTest(grid[10][10]) && player.isAlive) {     // Chest collision
+        if (!settings.itemsSpawned)
+        {
+            chest.gotoAndStop('chestOpen');
+            spawnItems();
+        }
+
+    }
+
+    if (playerHitTest(key)) {
+        stage.removeChild(key);
+        
     }
 }
 
