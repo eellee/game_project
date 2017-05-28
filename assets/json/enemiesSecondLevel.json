@@ -1,27 +1,26 @@
 {
-
 "images": [
     "assets/img/enemiesSecondLevel.png"
 ],
 
 "frames": [
-    [1, 1, 66, 91, 0, 0, 0],
-    [1, 94, 66, 91, 0, 0, 0],
-    [1, 187, 74, 60, 0, 0, 0],
-    [1, 249, 62, 63, 0, 0, 0],
-    [1, 314, 60, 59, 0, 0, 0]
+    [1, 1, 62, 63, 0, 0, 0],
+    [65, 1, 60, 49, 0, 0, 0],
+    [1, 66, 35, 48, 0, 0, 0],
+    [38, 66, 35, 48, 0, 0, 0],
+    [75, 52, 32, 31, 0, 0, 0]
 ],
 
 "animations": {
-    "energy": { "frames": [0] },
-    "fire": { "frames": [1] },
-    "ghost": { "frames": [2] },
-    "armor": { "frames": [3] },
-    "rock": { "frames": [4] }
+    "armor": { "frames": [0] },
+    "ghostSM": { "frames": [1] },
+    "energySM": { "frames": [2] },
+    "fireSM": { "frames": [3] },
+    "rockSM": { "frames": [4] }
 },
 
 "texturepacker": [
-        "SmartUpdateHash: $TexturePacker:SmartUpdate:f7e08cf50c1e8ed617af6fd975849e16:92d7cbe6e2398ba30b3439f28c2ace56:5e30e2f307535a35c5a00f22f29ae779$",
+        "SmartUpdateHash: $TexturePacker:SmartUpdate:39fdf8cc1dbb42930501f393afe68aa8:40229937e294606277c10ad0f5d5feec:02ab132358d6d8b512e80119463a8329$",
         "Created with TexturePacker (https://www.codeandweb.com/texturepacker) for EaselJS"
 ]
 
