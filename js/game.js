@@ -1,5 +1,7 @@
-var stage, queue, player, grid = [], level, HUDContainer;
-var levels = [], currentLevel =-1, tileSize = 45, currentAnimation = "idle";
+var stage, queue, player, grid = [], level, HUDContainer, enemies =[];
+var levels = [], currentLevel =0, tileSize = 45, currentAnimation = "idle";
+var bullets = [];
+var enemiesSecond = [];
 var keys = {
     left: false,
     right: false,
@@ -8,7 +10,9 @@ var keys = {
 };
 var settings = {
     playerSpeed: 2,
-    lives: 3
+    bulletSpeed: 2,
+    enemySpeed:2,
+    lives: 3,
 };
 function preload() {
     stage = new createjs.Stage("myCanvas");
@@ -22,10 +26,13 @@ function preload() {
             "assets/img/geometry.png",
             {id: "levelJson", src: "assets/json/levels.json"},
             {id: "geometrySprites", src: "assets/json/tiles.json"},
-            {id: "playerRagsSS", src: "assets/json/herotatters.json"}
+            {id: "playerRagsSS", src: "assets/json/herotatters.json"},
+            {id: "enemiesSecond", src: "assets/json/enemiesSecondLevel.json"}
         ]
     );
 }
+
+
 function queueComplete() {
     var lvl = queue.getResult("levelJson");
     levels = lvl.levels;
@@ -40,6 +47,7 @@ function setupLevel() {
     currentLevel++;
 
     var spritesheet = new createjs.SpriteSheet(queue.getResult('geometrySprites'));
+
 
     level = levels[currentLevel].tiles;
     grid = [];
@@ -129,6 +137,7 @@ function setupLevel() {
     player.row = playerRow;
     player.col = playerCol;
     stage.addChild(player);
+    addEnemies();
 
     HUDContainer = new createjs.Container();
     HUDContainer.x = 25;
@@ -137,17 +146,15 @@ function setupLevel() {
     createHUD();
 
 }
-function updateScene(e) {
-    movePlayer();
-    stage.update(e)
-}
 
 function keyLifted(e) {
+    "use strict";
+    console.log("You pressed" + e.keyCode);
     player.gotoAndPlay('idle');
     switch (e.keyCode) {
         case 32:
+            shoot();
             keys.space = false;
-            break;
         case 37:
             keys.left = false;
             break;
@@ -270,8 +277,107 @@ function createHUD() {
         HUDContainer.addChild(heart)
     }
 
+}
+//create enemy specificly level 0?
+function addEnemies(){
+    var enemiesSecond = new createjs.SpriteSheet(queue.getResult("enemiesSecond"));
+    for(var i= 0; i < 1; i++){
+        var enemyOne = new createjs.Sprite(enemiesSecond, "rockSM");
+        var enemySecond = new createjs.Sprite(enemiesSecond, "fireSM");
+        var enemyThird = new createjs.Sprite(enemiesSecond, "ghostSM");
+        var armorAppear = new createjs.Sprite(enemiesSecond, "armor");
+        enemyOne.width = 32;
+        enemyOne.height = 31;
+        enemyOne.x = Math.floor(Math.random()*900);
+        enemyOne.y = Math.floor(Math.random()*675);
+        enemySecond.width = 35;//correct
+        enemySecond.height = 48;
+        enemySecond.x = Math.floor(Math.random()*900);
+        enemySecond.y = Math.floor(Math.random()*675);
+        enemyThird.width = 40;
+        enemyThird.height = 32;
+        enemyThird.x = Math.floor(Math.random()*900);
+        enemyThird.y = Math.floor(Math.random()*675);
+        armorAppear.x = 420;
+        armorAppear.y = 20;
+        stage.addChild(enemyOne);
+        enemies.push(enemyOne);
+        stage.addChild(enemySecond);
+        enemies.push(enemySecond);
+        stage.addChild(enemyThird);
+        enemies.push(enemyThird);
+        stage.addChild(armorAppear);
+    }
+
+}
+
+function moveEnemies() {
+    console.log("moveEnemies called");
+
+    for (var i = enemies.length - 1; i >= 0; i--) {
+        enemies[i].y += settings.enemySpeed;
+        if (enemies[i].y > stage.canvas.height) {
+            enemies[i].y = Math.floor(Math.random() * 900);
+            enemies[i].x = Math.floor(Math.random() * 900);
+        }
 
 
+    }
+}
+
+
+function shoot() {
+    console.log("SHOOT!");
+
+    var bullet = new createjs.Shape();
+    bullet.graphics.beginFill('#FFF').drawCircle(0, 0, 2);
+    bullet.x = player.x + player.width / 2;
+    bullet.y = player.y;
+    //bullets have to have width and height for hit detection
+    bullet.width = 4;
+    bullet.height = 4;
+    stage.addChild(bullet);
+    bullets.push(bullet);
+}
+
+function moveBullets() {
+    for (var i = bullets.length - 1; i >= 0; i--) {
+        bullets[i].y -= settings.bulletSpeed;
+
+        //REMOVING BULLETS
+        if (bullets[i].y < -10) {
+            stage.removeChild(bullets[i]);
+            bullets.splice(i, 1);
+        }
+    }
+}
+
+function checkCollision() {
+    for (var i = enemies.length - 1; i >= 0; i--) {
+        if (hitTest(player, enemies[i])) {
+            settings.lives--;
+            stage.removeChild(enemies[i]);
+            enemies.splice(i, 1);
+            if (settings.heroLives <= 0) {
+                console.log("DEAD");
+
+            }
+        }
+    }
+}
+function hitTest(rect1, rect2) {
+    if (rect1.x >= rect2.x + rect2.width || rect1.x + rect1.width <= rect2.x ||
+        rect1.y >= rect2.y + rect2.height || rect1.y + rect1.height <= rect2.y) {
+        return false;
+    }
+}
+
+function updateScene(e) {
+    moveBullets();
+    movePlayer();
+    moveEnemies();
+    checkCollision();
+    stage.update(e)
 }
 
 
