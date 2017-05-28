@@ -1,9 +1,7 @@
 var stage, queue, player, grid = [], level, HUDContainer;
 var levels = [], currentLevel =0, tileSize = 45, currentAnimation = "idle";
 var bullets = [];
-var enemiesSecond = [
-    {"fire", "ghost",'rock'}, //correct
-];
+var enemiesSecond = [];
 var keys = {
     left: false,
     right: false,
@@ -299,7 +297,7 @@ function addEnemies(){
 function moveEnemies() {
     console.log("moveEnemies called");
 
-    for (var i = enemies.length - 1; i >= 0; i--) {
+    for (var i = enemies("fire", "ghost", "rock"); i >= 0; i--) {
         enemies[i].y += settings.enemySpeed;
         if (enemies[i].y > stage.canvas.height) {
             enemies[i].y = Math.floor(Math.random() * 900);
@@ -314,15 +312,15 @@ function moveEnemies() {
 function shoot() {
     console.log("SHOOT!");
 
-    var temp = new createjs.Shape();
-    temp.graphics.beginFill('#FFF').drawCircle(0, 0, 2);
-    temp.x = player.x + player.width / 2;
-    temp.y = player.y;
+    var bullet = new createjs.Shape();
+    bullet.graphics.beginFill('#FFF').drawCircle(0, 0, 2);
+    bullet.x = player.x + player.width / 2;
+    bullet.y = player.y;
     //bullets have to have width and height for hit detection
-    temp.width = 4;
-    temp.height = 4;
-    stage.addChild(temp);
-    bullets.push(temp);
+    bullet.width = 4;
+    bullet.height = 4;
+    stage.addChild(bullet);
+    bullets.push(bullet);
 }
 
 function moveBullets() {
@@ -354,12 +352,12 @@ function hitTest(rect1, rect2) {
     }
 }
 
-                function updateScene(e) {
-                    moveBullets();
-                    movePlayer();
-                    moveEnemies();
-                    checkCollision();
-                    stage.update(e)
+function updateScene(e) {
+    moveBullets();
+    movePlayer();
+    moveEnemies();
+    checkCollision();
+    stage.update(e)
                 }
 
 
