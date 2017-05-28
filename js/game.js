@@ -1,7 +1,9 @@
 var stage, queue, player, grid = [], level, HUDContainer;
 var levels = [], currentLevel =0, tileSize = 45, currentAnimation = "idle";
 var bullets = [];
-var enemiesSecond =[];
+var enemiesSecond = [
+    {"fire", "ghost",'rock'}, //correct
+];
 var keys = {
     left: false,
     right: false,
