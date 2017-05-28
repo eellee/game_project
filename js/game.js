@@ -1,6 +1,7 @@
 var stage, queue, player, grid = [], level, HUDContainer;
+var levels = [], currentLevel =0, tileSize = 45, currentAnimation = "idle";
 var bullets = [];
-var levels = [], currentLevel =-1, tileSize = 45, currentAnimation = "idle";
+var enemiesSS =[];
 var keys = {
     left: false,
     right: false,
@@ -10,20 +11,9 @@ var keys = {
 var settings = {
     playerSpeed: 2,
     bulletSpeed: 2,
-    lives: 3
-   // muted: false -> add song
-
+    enemySpeed:2,
+    lives: 3,
 };
-
-//eliana
-/*function hitTest(rect1, rect2) {
-    if (rect1.x >= rect2.x + rect2.width || rect1.x + rect1.width <= rect2.x ||
-        rect1.y >= rect2.y + rect2.height || rect1.y + rect1.height <= rect2.y) {
-        return false;
-    }
-    return true;
-}*/
-
 function preload() {
     stage = new createjs.Stage("myCanvas");
 
@@ -36,11 +26,13 @@ function preload() {
             "assets/img/geometry.png",
             {id: "levelJson", src: "assets/json/levels.json"},
             {id: "geometrySprites", src: "assets/json/tiles.json"},
-            {id: "playerRagsSS", src: "assets/json/herotatters.json"}
-            {id: "enemies2level", src: "assets/json/enemies-2.json"}
+            {id: "playerRagsSS", src: "assets/json/herotatters.json"},
+            {id: "enemiesSecond", src: "assets/json/enemies.json"}
         ]
     );
 }
+
+
 function queueComplete() {
     var lvl = queue.getResult("levelJson");
     levels = lvl.levels;
@@ -158,11 +150,13 @@ function updateScene(e) {
 }
 
 function keyLifted(e) {
+    "use strict";
+    console.log("You pressed" + e.keyCode);
     player.gotoAndPlay('idle');
     switch (e.keyCode) {
         case 32:
+            fire();
             keys.space = false;
-            break;
         case 37:
             keys.left = false;
             break;
@@ -261,7 +255,6 @@ function movePlayer() {
     }
 }
 
-
 function walkable(y, x) {
     var walkableTileTypes = [5,7];
     var targetTileNumber = grid[y][x].tileNumber;
@@ -286,9 +279,71 @@ function createHUD() {
         HUDContainer.addChild(heart)
     }
 
+}
 
+//create enemy on specific level 0?
+function addEnemies(){
+    var enemiesSecond = new createjs.SpriteSheet(queue.getResult("enemiesSecond"));
+    for(var i= 0; i < 20; i++){
+        var enemies = new createjs.Sprite("enemiesSecond", "rock-2.png");
+        enemies.width = 60;
+        enemies.height = 59;
+        enemies.x = Math.floor(Math.random()*900);
+        enemies.y = Math.floor(Math.random()*900);
+        stage.addChild(enemies);
+        enemies.push(enemies);
+    }
 
 }
 
+function moveEnemies() {
+    console.log("moveEnemies called");
 
-window.addEventListener('load', preload);
+    for (var i = enemies.length - 1; i >= 0; i--) {
+        enemies[i].y += settings.enemySpeed;
+        if (enemies[i].y > stage.canvas.height) {
+            enemies[i].y = Math.floor(Math.random() * 900);
+            enemies[i].x = Math.floor(Math.random() * 900);
+        }
+
+
+    }
+}
+
+
+function fire() {
+    console.log("FIRE!");
+
+    var temp = new createjs.Shape();
+    temp.graphics.beginFill('#FFF').drawCircle(0, 0, 2);
+    temp.x = player.x + player.width / 2;
+    temp.y = player.y;
+    //bullets have to have width and height for hit detection
+    temp.width = 4;
+    temp.height = 4;
+    stage.addChild(temp);
+    bullets.push(temp);
+}
+
+function moveBullets() {
+    for (var i = bullets.length - 1; i >= 0; i--) {
+        bullets[i].y -= settings.bulletSpeed;
+
+        //REMOVING BULLETS
+        if (bullets[i].y < -10) {
+            stage.removeChild(bullets[i]);
+            bullets.splice(i, 1);
+        }
+    }
+}
+
+
+function hitTest(rect1, rect2) {
+    if (rect1.x >= rect2.x + rect2.width || rect1.x + rect1.width <= rect2.x ||
+        rect1.y >= rect2.y + rect2.height || rect1.y + rect1.height <= rect2.y) {
+        return false;
+    }
+}
+
+
+        window.addEventListener('load', preload);
