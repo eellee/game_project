@@ -278,18 +278,35 @@ function createHUD() {
     }
 
 }
-
 //create enemy specificly level 0?
 function addEnemies(){
     var enemiesSecond = new createjs.SpriteSheet(queue.getResult("enemiesSecond"));
-    for(var i= 0; i < 20; i++){
-        var enemyOne = new createjs.Sprite(enemiesSecond, "rock");
-        enemyOne.width = 60;
-        enemyOne.height = 59;
+    for(var i= 0; i < 1; i++){
+        var enemyOne = new createjs.Sprite(enemiesSecond, "rockSM");
+        var enemySecond = new createjs.Sprite(enemiesSecond, "fireSM");
+        var enemyThird = new createjs.Sprite(enemiesSecond, "ghostSM");
+        var armorAppear = new createjs.Sprite(enemiesSecond, "armor");
+        enemyOne.width = 32;
+        enemyOne.height = 31;
         enemyOne.x = Math.floor(Math.random()*900);
         enemyOne.y = Math.floor(Math.random()*675);
+        enemySecond.width = 35;//correct
+        enemySecond.height = 48;
+        enemySecond.x = Math.floor(Math.random()*900);
+        enemySecond.y = Math.floor(Math.random()*675);
+        enemyThird.width = 40;
+        enemyThird.height = 32;
+        enemyThird.x = Math.floor(Math.random()*900);
+        enemyThird.y = Math.floor(Math.random()*675);
+        armorAppear.x = 420;
+        armorAppear.y = 20;
         stage.addChild(enemyOne);
         enemies.push(enemyOne);
+        stage.addChild(enemySecond);
+        enemies.push(enemySecond);
+        stage.addChild(enemyThird);
+        enemies.push(enemyThird);
+        stage.addChild(armorAppear);
     }
 
 }
@@ -361,7 +378,7 @@ function updateScene(e) {
     moveEnemies();
     checkCollision();
     stage.update(e)
-                }
+}
 
 
 window.addEventListener('load', preload);
