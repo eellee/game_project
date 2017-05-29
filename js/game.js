@@ -25,7 +25,8 @@ var dialogue = {
     "Hello, my child...",
     "You do not belong here.",
     "Take this key and escape!"],
-    lastChanged: {}
+    lastChanged: {},
+    instructions: {}
 
 };
 var guardInit = [
@@ -182,7 +183,6 @@ function setupLevel() {
     settings.itemsSpawned = false;
 
     spawnNPC();
-    spawnGuards();
     // =============================================================
     var playerSS = new createjs.SpriteSheet(queue.getResult("playerRagsSS"));
     player = new createjs.Sprite(playerSS, "idle");
@@ -197,8 +197,20 @@ function setupLevel() {
     player.hasKey = false;
     player.isMoving = false;
     player.isAlive = true;
+    //=====LEVEL 1========
     player.dialogueStarted = false;
+    player.hasWeapon = false;
+
+    //====================
+
+
     stage.addChild(player);
+
+
+    //========LVL 1=======
+    spawnGuards();
+    //====================
+
 
     HUDContainer = new createjs.Container();
     HUDContainer.x = 25;
@@ -353,7 +365,8 @@ function playerHitTest(object) {
     var playerTileXRight = Math.floor((player.x  + 45)  / tileSize),//TODO Fix this. Should be + player.width but player is wider than one tile
         playerTileXLeft = Math.floor(player.x / tileSize),
         playerTileY = Math.floor(player.y / tileSize);
-    var objectTileX = Math.floor(object.x / tileSize), objectTileY = Math.floor(object.y / tileSize);
+    var objectTileX = Math.floor(object.x / tileSize),
+        objectTileY = Math.floor(object.y / tileSize);
 
     //console.log("PlayerTileXRight: " + playerTileXRight + ", " + "PlayerTileXLeft: " + playerTileXLeft + ", " + "Player tileY: " + playerTileY + " / " + "Object tileX: " + objectTileX + ", " + "Object tileY: " + objectTileY);
 
@@ -382,6 +395,13 @@ function createHUD() {
     HUDKey.y = 50;
     HUDContainer.addChild(HUDKey);
     stage.addChild(HUDKey);
+
+    var weaponSS = new createjs.SpriteSheet(queue.getResult("weaponSS"));
+    HUDWeapon = new createjs.Sprite(weaponSS, "emptyWeapon");
+    HUDWeapon.x = 60;
+    HUDWeapon.y = 50;
+    HUDContainer.addChild(HUDWeapon);
+    stage.addChild(HUDWeapon);
 }
 
 function spawnNPC() {
@@ -411,9 +431,16 @@ function startDialogue(){
     dialogue.text.y = dialogue.sb.y + 8;
     dialogue.textContainer.addChild(dialogue.sb, dialogue.text);
     stage.addChild(dialogue.textContainer);
+
+    dialogue.instructions = new createjs.Text("Press [enter] to continue.", "20px Arial Black", "#ffffff");
+    dialogue.instructions.textAlign = "center";
+    dialogue.instructions.x = stage.canvas.width / 2;
+    dialogue.instructions.y = stage.canvas.height - 100;
+    stage.addChild(dialogue.instructions);
 }
 function updateDialogue(){
     if (keys.enter){
+        stage.removeChild(dialogue.instructions);
         dialogue.textContainer.removeChild(dialogue.text);
 
         switch (dialogue.speechStage) {
@@ -454,6 +481,8 @@ function spawnItems() {
     key = new createjs.Sprite(keySS, "key");
     key.x = 10 * tileSize;
     key.y = 10 * tileSize;
+    key.width = tileSize;
+    key.height = tileSize;
     stage.addChild(key);
 
     createjs.Tween.get(key, {loop: false})
@@ -463,9 +492,17 @@ function spawnItems() {
     weapon = new createjs.Sprite(weaponSS, "weapon");
     weapon.x = 10 * tileSize;
     weapon.y = 10 * tileSize;
+    weapon.width = tileSize;
+    weapon.height = tileSize;
     stage.addChild(weapon);
     createjs.Tween.get(weapon, {loop: false})
         .to({x: 14 * tileSize, rotation: 360}, 1000);
+
+    setTimeout(tweenComplete, 1000);
+
+}
+function tweenComplete() {
+    settings.tweenComplete = true;
 }
 function spawnGuards() {
     var guardSS = new createjs.SpriteSheet(queue.getResult("guardSS"));
@@ -527,6 +564,21 @@ function handleCollisions(){
         grid[7][16].tileNumber = 5;
 
         HUDKey.gotoAndPlay('emptyKey');
+        player.hasKey = false;
+    }
+
+    if (playerHitTest((grid[8][5]) || grid[8][6])  && player.hasKey){ // First door collision
+        grid[7][5].gotoAndPlay('wholeFloor');
+        grid[7][5].tileNumber = 5;
+        grid[6][5].gotoAndPlay('wholeFloor');
+        grid[6][5].tileNumber = 5;
+        grid[6][6].gotoAndPlay('brokenFloor');
+        grid[6][6].tileNumber = 7;
+        grid[7][6].gotoAndPlay('wholeFloor');
+        grid[7][6].tileNumber = 5;
+
+        HUDKey.gotoAndPlay('emptyKey');
+        player.hasKey = false;
     }
 
     for (var i = 0; i < guards.length; i++)     // Guards collision
@@ -571,13 +623,26 @@ function handleCollisions(){
             chest.gotoAndStop('chestOpen');
             spawnItems();
         }
-
+    }
+    if (settings.tweenComplete) {
+        if (typeof key != "undefined") {
+            if (playerHitTest(key) && !player.hasKey) {
+                createjs.Sound.play("keyPickup");
+                stage.removeChild(key);
+                player.hasKey = true;
+                HUDKey.gotoAndStop('key');
+            }
+        }
+        if (typeof  weapon != "undefined") {
+            if (playerHitTest(weapon) && !player.hasWeapon) {
+                stage.removeChild(weapon);
+                createjs.Sound.play("keyPickup");
+                player.hasWeapon = true;
+                HUDWeapon.gotoAndStop('weapon');
+            }
+        }
     }
 
-    if (playerHitTest(key)) {
-        stage.removeChild(key);
-        
-    }
 }
 
 window.addEventListener('load', preload);
