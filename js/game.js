@@ -1,7 +1,8 @@
-var stage, queue, player, grid = [], level, HUDContainer, enemies =[];
+var stage, queue, player, grid = [], level, HUDContainer, energy = [], enemies =[];
 var levels = [], currentLevel =0, tileSize = 45, currentAnimation = "idle";
-var bullets = [];
-var enemiesSecond = [];
+var armor;
+//var bullets = [];
+var enemiesSecond;
 var keys = {
     left: false,
     right: false,
@@ -12,7 +13,8 @@ var settings = {
     playerSpeed: 2,
     bulletSpeed: 2,
     enemySpeed:2,
-    lives: 3,
+    energySpeed: 2,
+    lives: 3
 };
 function preload() {
     stage = new createjs.Stage("myCanvas");
@@ -137,7 +139,8 @@ function setupLevel() {
     player.row = playerRow;
     player.col = playerCol;
     stage.addChild(player);
-    addEnemies();
+    addEnemiesSecond();
+    addEnergy();
 
     HUDContainer = new createjs.Container();
     HUDContainer.x = 25;
@@ -279,40 +282,33 @@ function createHUD() {
 
 }
 //create enemy specificly level 0?
-function addEnemies(){
+function addEnemiesSecond(){ //change name function
     var enemiesSecond = new createjs.SpriteSheet(queue.getResult("enemiesSecond"));
     for(var i= 0; i < 1; i++){
         var enemyOne = new createjs.Sprite(enemiesSecond, "rockSM");
         var enemySecond = new createjs.Sprite(enemiesSecond, "fireSM");
         var enemyThird = new createjs.Sprite(enemiesSecond, "ghostSM");
-        var armorAppear = new createjs.Sprite(enemiesSecond, "armor");
-        enemyOne.width = 32;
-        enemyOne.height = 31;
-        enemyOne.x = Math.floor(Math.random()*900);
-        enemyOne.y = Math.floor(Math.random()*675);
-        enemySecond.width = 35;//correct
-        enemySecond.height = 48;
-        enemySecond.x = Math.floor(Math.random()*900);
-        enemySecond.y = Math.floor(Math.random()*675);
-        enemyThird.width = 40;
-        enemyThird.height = 32;
-        enemyThird.x = Math.floor(Math.random()*900);
-        enemyThird.y = Math.floor(Math.random()*675);
-        armorAppear.x = 420;
-        armorAppear.y = 20;
+        enemyOne.width = 45;
+        enemyOne.height = 45;
+        enemySecond.width = 45;
+        enemySecond.height = 45;
+        enemyThird.width = 45;
+        enemyThird.height = 45;
+        enemyOne.x = Math.floor(Math.random() * 900);
+        enemySecond.x = Math.floor(Math.random() * 900);
+        enemyThird.x = Math.floor(Math.random() * 900);
         stage.addChild(enemyOne);
         enemies.push(enemyOne);
         stage.addChild(enemySecond);
         enemies.push(enemySecond);
         stage.addChild(enemyThird);
         enemies.push(enemyThird);
-        stage.addChild(armorAppear);
     }
 
 }
 
-function moveEnemies() {
-    console.log("moveEnemies called");
+function moveEnemiesSecond() { //change name function
+    //console.log("moveEnemies called");
 
     for (var i = enemies.length - 1; i >= 0; i--) {
         enemies[i].y += settings.enemySpeed;
@@ -321,11 +317,40 @@ function moveEnemies() {
             enemies[i].x = Math.floor(Math.random() * 900);
         }
 
+    }
+}
+
+function armorAppear() {
+    var enemiesSecond = new createjs.SpriteSheet(queue.getResult("enemiesSecond"));
+    var armorAppear = new createjs.Sprite(enemiesSecond, "armor");
+    armorAppear.x = 420;
+    armorAppear.y = 20;
+    stage.addChild(armorAppear);
+}
+
+function addEnergy() {
+    var enemiesSecond = new createjs.SpriteSheet(queue.getResult("enemiesSecond"));
+    var addEnergy = new createjs.Sprite(enemiesSecond, "energySM");
+    addEnergy.x = Math.floor(Math.random()*900);
+    addEnergy.y = Math.floor(Math.random()*675);
+    stage.addChild(addEnergy);
+    energy.push(addEnergy);
+}
+
+function moveEnergy() {
+
+    for (var i = energy.length - 1; i >= 0; i--) {
+        energy[i].y += settings.energySpeed;
+        if (energy[i].y > stage.canvas.height) {
+            energy[i].y = Math.floor(Math.random() * 900);
+            energy[i].x = Math.floor(Math.random() * 900);
+        }
 
     }
 }
 
-
+//necessary?
+/*
 function shoot() {
     console.log("SHOOT!");
 
@@ -340,6 +365,7 @@ function shoot() {
     bullets.push(bullet);
 }
 
+//necessary?
 function moveBullets() {
     for (var i = bullets.length - 1; i >= 0; i--) {
         bullets[i].y -= settings.bulletSpeed;
@@ -352,33 +378,101 @@ function moveBullets() {
     }
 }
 
-function checkCollision() {
-    for (var i = enemies.length - 1; i >= 0; i--) {
-        if (hitTest(player, enemies[i])) {
-            settings.lives--;
-            stage.removeChild(enemies[i]);
-            enemies.splice(i, 1);
-            if (settings.heroLives <= 0) {
-                console.log("DEAD");
+*/
 
-            }
-        }
-    }
-}
-function hitTest(rect1, rect2) {
+console.log("all good until here!")
+
+//instead of hit detection
+
+
+/////////////////////////////////////////////////// BLOCKED! /////////////////////////////////////////////////
+
+/*
+
+function hitTest(rect1, rect2) { //borrowed from jonas class
     if (rect1.x >= rect2.x + rect2.width || rect1.x + rect1.width <= rect2.x ||
         rect1.y >= rect2.y + rect2.height || rect1.y + rect1.height <= rect2.y) {
         return false;
     }
 }
 
+function checkCollisionSecond() {
+    for (var i = 0; i < enemies.length; i++) {
+        if (hitTest(player, enemies[i])) {
+            settings.lives--;
+            stage.removeChild(enemies[i]);
+            enemies.splice(i, 1);
+            if (settings.lives <= 0) {
+                console.log("DEAD");
+                //enemies vs hero
+                // bullets vs enemies
+
+            }
+        }
+    }
+}
+*/
 function updateScene(e) {
-    moveBullets();
+    //moveBullets();
     movePlayer();
-    moveEnemies();
-    checkCollision();
+    moveEnemiesSecond();
+    armorAppear();
+    moveEnergy();
+    handleHits();
     stage.update(e)
 }
 
+              /*
+function playerHitTest(object) {
+    var playerTileXRight = Math.floor((player.x  + 45)  / tileSize),//TODO Fix this. Should be + player.width but player is wider than one tile
+        playerTileXLeft = Math.floor(player.x / tileSize),
+        playerTileY = Math.floor(player.y / tileSize);
+    var objectTileX = Math.floor(object.x / tileSize),
+        objectTileY = Math.floor(object.y / tileSize);
+
+    if (playerTileY == objectTileY && (playerTileXLeft == objectTileX || playerTileXRight == objectTileX)) {
+        return true;
+    }
+}        */
+
+function playerHitTest(object) {
+    var playerTileXRight = Math.floor((player.x  + 45)  / tileSize),//TODO Fix this. Should be + player.width but player is wider than one tile
+        playerTileXLeft = Math.floor(player.x / tileSize),
+        playerTileY = Math.floor(player.y / tileSize);
+    var objectTileX = Math.floor(object.x / tileSize),
+        objectTileY = Math.floor(object.y / tileSize);
+
+    if (playerTileY == objectTileY && (playerTileXLeft == objectTileX || playerTileXRight == objectTileX)) {
+        return true;
+    }
+    return false;
+}
+function handleHits() {
+    for (var i = enemies.length-1; i >= 0; i--) {
+        var enemyPosX = Math.floor(enemies[i].x / tileSize);
+        var enemyPosY = Math.floor(enemies[i].y / tileSize);
+
+        if (playerHitTest(enemies[i])) {
+            settings.lives--;
+            console.log("hit")
+            stage.removeChild(enemies[i]);
+            enemies.splice(i,1);
+        }
+
+    }
+
+    for (var i = enemies.length-1; i >= 0; i--) {
+        var enemyPosX = Math.floor(enemies[i].x / tileSize);
+        var enemyPosY = Math.floor(enemies[i].y / tileSize);
+
+        if (playerHitTest(enemies[i])) {
+            settings.lives--;
+            console.log("hit")
+            stage.removeChild(enemies[i]);
+            enemies.splice(i,1);
+        }
+
+    }
+}
 
 window.addEventListener('load', preload);
