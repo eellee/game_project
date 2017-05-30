@@ -1,0 +1,9 @@
+{
+
+  "images": ["assets/img/chakram.png"],
+  "frames": {"width":45, "height":45, "regX": 0, "regY":0},
+  "animations": {
+    "emptyWeapon": [0],
+    "weapon": [1]
+  }
+}
