@@ -10,11 +10,22 @@ var keys = {
 var settings = {
     playerSpeed: 2,
     lives: 3,
-    gamePaused: false,
-    hearts: {},
     lastInjured: new Date()
 };
-var key, HUDKey, npc, chest, weapon, HUDWeapon;
+var game = {
+    gamePaused: false
+};
+var HUD = {
+    key: {},
+    weapon: {},
+    hearts: {}
+};
+var items = {
+    key: {},
+    npc: {},
+    chest: {},
+    weapon: {}
+};
 var dialogue = {
     speechStage: 0,
     textContainer: {},
@@ -172,18 +183,20 @@ function setupLevel() {
             grid[row][col] = tile;
         }
     }
-    // =============================================================
-    // LEVEL 1 SPECIFIC
-    var chestSS = new createjs.SpriteSheet(queue.getResult("chestSS"));
-    chest = new createjs.Sprite(chestSS, "chestClosed");
-    chest.x = 10 * tileSize;
-    chest.y = 10 * tileSize;
-    stage.addChild(chest);
 
-    settings.itemsSpawned = false;
+    // LEVEL 1
+    if (currentLevel == 0){
+        var chestSS = new createjs.SpriteSheet(queue.getResult("chestSS"));
+        items.chest = new createjs.Sprite(chestSS, "chestClosed");
+        items.chest.x = 10 * tileSize;
+        items.chest.y = 10 * tileSize;
+        stage.addChild(items.chest);
 
-    spawnNPC();
-    // =============================================================
+        settings.itemsSpawned = false;
+        spawnNPC();
+    }
+
+
     var playerSS = new createjs.SpriteSheet(queue.getResult("playerRagsSS"));
     player = new createjs.Sprite(playerSS, "idle");
     player.x = 13 * tileSize;
@@ -197,19 +210,16 @@ function setupLevel() {
     player.hasKey = false;
     player.isMoving = false;
     player.isAlive = true;
-    //=====LEVEL 1========
     player.dialogueStarted = false;
     player.hasWeapon = false;
-
-    //====================
-
-
     stage.addChild(player);
 
 
-    //========LVL 1=======
-    spawnGuards();
-    //====================
+    // LEVEL 1
+    if (currentLevel == 0)
+    {
+        spawnGuards();
+    }
 
 
     HUDContainer = new createjs.Container();
@@ -222,10 +232,11 @@ function setupLevel() {
 function updateScene(e) {
     movePlayer();
 
-    //===================
-    // Level 1
-    moveGuards();
-    //===================
+    // LEVEL 1
+    if (currentLevel == 0)
+    {
+        moveGuards();
+    }
 
     stage.update(e)
 }
@@ -259,25 +270,25 @@ function keyPressed(e) {
             keys.enter = true;
             break;
         case 37:
-            if (!settings.gamePaused)
+            if (!game.gamePaused)
             {
                 keys.left = true;
             }
             break;
         case 38:
-            if (!settings.gamePaused)
+            if (!game.gamePaused)
             {
                 keys.up = true;
             }
             break;
         case 39:
-            if (!settings.gamePaused)
+            if (!game.gamePaused)
             {
                 keys.right = true;
             }
             break;
         case 40:
-            if (!settings.gamePaused)
+            if (!game.gamePaused)
             {
                 keys.down = true;
             }
@@ -287,6 +298,9 @@ function keyPressed(e) {
 function movePlayer() {
     if (player.isMoving) {
         handleCollisions();
+    }
+    if (player.y < player.height / 2) {
+        setupLevel();
     }
     if (keys.left) {
         let potentialPositionX = player.x - settings.playerSpeed;
@@ -370,9 +384,6 @@ function playerHitTest(object) {
 
     //console.log("PlayerTileXRight: " + playerTileXRight + ", " + "PlayerTileXLeft: " + playerTileXLeft + ", " + "Player tileY: " + playerTileY + " / " + "Object tileX: " + objectTileX + ", " + "Object tileY: " + objectTileY);
 
-    //if (rect1TileX == objectTileX && rect1TileY == objectTileY){
-    //    return true;
-    //}
     if (playerTileY == objectTileY && (playerTileXLeft == objectTileX || playerTileXRight == objectTileX)) {
         return true;
     }
@@ -386,32 +397,32 @@ function createHUD() {
         heart.graphics.curveTo(-16, 0, -16, -10).curveTo(-16, -20, -8, -20).curveTo(-1, -20, 0, -12);
         heart.x += i * 50 + 10;
 
-        settings.hearts[i] = HUDContainer.addChild(heart);
+        HUD.hearts[i] = HUDContainer.addChild(heart);
     }
 
     var keySS = new createjs.SpriteSheet(queue.getResult("keySS"));
-    HUDKey = new createjs.Sprite(keySS, "emptyKey");
-    HUDKey.x = 10;
-    HUDKey.y = 50;
-    HUDContainer.addChild(HUDKey);
-    stage.addChild(HUDKey);
+    HUD.key = new createjs.Sprite(keySS, "emptyKey");
+    HUD.key.x = 10;
+    HUD.key.y = 50;
+    HUDContainer.addChild(HUD.key);
+    stage.addChild(HUD.key);
 
     var weaponSS = new createjs.SpriteSheet(queue.getResult("weaponSS"));
-    HUDWeapon = new createjs.Sprite(weaponSS, "emptyWeapon");
-    HUDWeapon.x = 60;
-    HUDWeapon.y = 50;
-    HUDContainer.addChild(HUDWeapon);
-    stage.addChild(HUDWeapon);
+    HUD.weapon = new createjs.Sprite(weaponSS, "emptyWeapon");
+    HUD.weapon.x = 60;
+    HUD.weapon.y = 50;
+    HUDContainer.addChild(HUD.weapon);
+    stage.addChild(HUD.weapon);
 }
 
 function spawnNPC() {
-    npc = new createjs.Bitmap("assets/img/npc.png");
-    npc.x = 17 * tileSize;
-    npc.y = 3 * tileSize;
-    npc.width = 90;
-    npc.height = 90;
-    npc.regY = 90;
-    stage.addChild(npc);
+    items.npc = new createjs.Bitmap("assets/img/npc.png");
+    items.npc.x = 17 * tileSize;
+    items.npc.y = 3 * tileSize;
+    items.npc.width = 90;
+    items.npc.height = 90;
+    items.npc.regY = 90;
+    stage.addChild(items.npc);
 }
 function startDialogue(){
     dialogue.speechStage = 0;
@@ -462,8 +473,8 @@ function updateDialogue(){
                 if (elapsed > 500 && !player.hasKey){
                     stage.removeChild(dialogue.textContainer);
                     createjs.Sound.play("keyPickup");
-                    HUDKey.gotoAndPlay('key');
-                    settings.gamePaused = false;
+                    HUD.key.gotoAndPlay('key');
+                    game.gamePaused = false;
                     player.hasKey = true;
                 }
                 break;
@@ -478,31 +489,28 @@ function updateDialogue(){
 function spawnItems() {
     settings.itemsSpawned = true;
     var keySS = new createjs.SpriteSheet(queue.getResult("keySS"));
-    key = new createjs.Sprite(keySS, "key");
-    key.x = 10 * tileSize;
-    key.y = 10 * tileSize;
-    key.width = tileSize;
-    key.height = tileSize;
-    stage.addChild(key);
+    items.key = new createjs.Sprite(keySS, "key");
+    items.key.x = 10 * tileSize;
+    items.key.y = 10 * tileSize;
+    items.key.width = tileSize;
+    items.key.height = tileSize;
+    stage.addChild(items.key);
 
-    createjs.Tween.get(key, {loop: false})
+    createjs.Tween.get(items.key, {loop: false})
         .to({x: 6 * tileSize, rotation: 360}, 1000);
 
     var weaponSS = new createjs.SpriteSheet(queue.getResult("weaponSS"));
-    weapon = new createjs.Sprite(weaponSS, "weapon");
-    weapon.x = 10 * tileSize;
-    weapon.y = 10 * tileSize;
-    weapon.width = tileSize;
-    weapon.height = tileSize;
-    stage.addChild(weapon);
-    createjs.Tween.get(weapon, {loop: false})
-        .to({x: 14 * tileSize, rotation: 360}, 1000);
-
-    setTimeout(tweenComplete, 1000);
-
-}
-function tweenComplete() {
-    settings.tweenComplete = true;
+    items.weapon = new createjs.Sprite(weaponSS, "weapon");
+    items.weapon.x = 10 * tileSize;
+    items.weapon.y = 10 * tileSize;
+    items.weapon.width = tileSize;
+    items.weapon.height = tileSize;
+    stage.addChild(items.weapon);
+    createjs.Tween.get(items.weapon, {loop: false})
+        .to({x: 14 * tileSize, rotation: 360}, 1000)
+        .call(function () {
+            settings.tweenComplete = true;
+        });
 }
 function spawnGuards() {
     var guardSS = new createjs.SpriteSheet(queue.getResult("guardSS"));
@@ -542,107 +550,106 @@ function moveGuards(){
     }
 }
 function handleCollisions(){
-    if (playerHitTest((grid[4][16] || grid[5][16] || grid[5][17]) || grid[5][18]) && !player.hasKey) { // Prisoner collision
-        if (!player.dialogueStarted)
-        {
-            player.dialogueStarted = true;
-            settings.gamePaused = true;
-            player.gotoAndStop("idle");
-            startDialogue();
-        } else {
-            updateDialogue();
+    // LEVEL 1
+    if (currentLevel == 0) {
+        if (playerHitTest((grid[4][16] || grid[5][16] || grid[5][17]) || grid[5][18]) && !player.hasKey) { // Prisoner collision
+            if (!player.dialogueStarted)
+            {
+                player.dialogueStarted = true;
+                game.gamePaused = true;
+                player.gotoAndStop("idle");
+                startDialogue();
+            } else {
+                updateDialogue();
+            }
         }
-    }
-    if (playerHitTest((grid[5][15]) || grid[5][16])  && player.hasKey){ // First door collision
-        grid[7][15].gotoAndPlay('wholeFloor');
-        grid[7][15].tileNumber = 5;
-        grid[6][15].gotoAndPlay('wholeFloor');
-        grid[6][15].tileNumber = 5;
-        grid[6][16].gotoAndPlay('brokenFloor');
-        grid[6][16].tileNumber = 7;
-        grid[7][16].gotoAndPlay('wholeFloor');
-        grid[7][16].tileNumber = 5;
+        if (playerHitTest((grid[5][15]) || grid[5][16])  && player.hasKey){ // First door collision
+            grid[7][15].gotoAndPlay('wholeFloor');
+            grid[7][15].tileNumber = 5;
+            grid[6][15].gotoAndPlay('wholeFloor');
+            grid[6][15].tileNumber = 5;
+            grid[6][16].gotoAndPlay('brokenFloor');
+            grid[6][16].tileNumber = 7;
+            grid[7][16].gotoAndPlay('wholeFloor');
+            grid[7][16].tileNumber = 5;
 
-        HUDKey.gotoAndPlay('emptyKey');
-        player.hasKey = false;
-    }
+            HUD.key.gotoAndPlay('emptyKey');
+            player.hasKey = false;
+        }
+        if (playerHitTest((grid[2][5]) || grid[2][6])  && player.hasKey){ // Second door collision
+            grid[1][5].gotoAndPlay('wholeFloor');
+            grid[1][5].tileNumber = 5;
+            grid[0][5].gotoAndPlay('wholeFloor');
+            grid[0][5].tileNumber = 5;
+            grid[0][6].gotoAndPlay('brokenFloor');
+            grid[0][6].tileNumber = 7;
+            grid[1][6].gotoAndPlay('wholeFloor');
+            grid[1][6].tileNumber = 5;
 
-    if (playerHitTest((grid[8][5]) || grid[8][6])  && player.hasKey){ // First door collision
-        grid[7][5].gotoAndPlay('wholeFloor');
-        grid[7][5].tileNumber = 5;
-        grid[6][5].gotoAndPlay('wholeFloor');
-        grid[6][5].tileNumber = 5;
-        grid[6][6].gotoAndPlay('brokenFloor');
-        grid[6][6].tileNumber = 7;
-        grid[7][6].gotoAndPlay('wholeFloor');
-        grid[7][6].tileNumber = 5;
+            HUD.key.gotoAndPlay('emptyKey');
+            player.hasKey = false;
+        }
+        for (var i = 0; i < guards.length; i++)     // Guards collision
+        {
+            var guardPosX = Math.floor(guards[i].x / tileSize);
 
-        HUDKey.gotoAndPlay('emptyKey');
-        player.hasKey = false;
-    }
+            if(playerHitTest(grid[guardInit[i][1]][guardPosX])){
+                var elapsed = new Date() - settings.lastInjured;
 
-    for (var i = 0; i < guards.length; i++)     // Guards collision
-    {
-        var guardPosX = Math.floor(guards[i].x / tileSize);
+                if (elapsed > 1000){
+                    console.log(settings.lives);
+                    settings.lives--;
+                    settings.lastInjured = new Date();
+                    HUDContainer.removeChild(HUD.hearts[settings.lives]);
 
-        if(playerHitTest(grid[guardInit[i][1]][guardPosX])){
-            var elapsed = new Date() - settings.lastInjured;
-
-            if (elapsed > 1000){
-                console.log(settings.lives);
-                settings.lives--;
-                settings.lastInjured = new Date();
-                HUDContainer.removeChild(settings.hearts[settings.lives]);
-
-                if (settings.lives <= 0 && player.isAlive) {
-                    player.isAlive = false;
-                    console.log("Dead")
-                } else {
-                    switch (player.currentAnimation) {
-                        case "right":
-                            player.gotoAndPlay('rightHit');
-                            break;
-                        case "left":
-                            player.gotoAndPlay('leftHit');
-                            break;
-                        case "up":
-                            player.gotoAndPlay('upHit');
-                            break;
-                        case "down":
-                            player.gotoAndPlay('downHit');
-                            break;
+                    if (settings.lives <= 0 && player.isAlive) {
+                        player.isAlive = false;
+                        console.log("Dead")
+                    } else {
+                        switch (player.currentAnimation) {
+                            case "right":
+                                player.gotoAndPlay('rightHit');
+                                break;
+                            case "left":
+                                player.gotoAndPlay('leftHit');
+                                break;
+                            case "up":
+                                player.gotoAndPlay('upHit');
+                                break;
+                            case "down":
+                                player.gotoAndPlay('downHit');
+                                break;
+                        }
                     }
                 }
             }
         }
-    }
-
-    if(playerHitTest(grid[10][10]) && player.isAlive) {     // Chest collision
-        if (!settings.itemsSpawned)
-        {
-            chest.gotoAndStop('chestOpen');
-            spawnItems();
-        }
-    }
-    if (settings.tweenComplete) {
-        if (typeof key != "undefined") {
-            if (playerHitTest(key) && !player.hasKey) {
-                createjs.Sound.play("keyPickup");
-                stage.removeChild(key);
-                player.hasKey = true;
-                HUDKey.gotoAndStop('key');
+        if(playerHitTest(grid[10][10]) && player.isAlive) {     // Chest collision
+            if (!settings.itemsSpawned)
+            {
+                items.chest.gotoAndStop('chestOpen');
+                spawnItems();
             }
         }
-        if (typeof  weapon != "undefined") {
-            if (playerHitTest(weapon) && !player.hasWeapon) {
-                stage.removeChild(weapon);
-                createjs.Sound.play("keyPickup");
-                player.hasWeapon = true;
-                HUDWeapon.gotoAndStop('weapon');
+        if (settings.tweenComplete) {
+            if (typeof items.key != "undefined") {
+                if (playerHitTest(items.key) && !player.hasKey) {
+                    createjs.Sound.play("keyPickup");
+                    stage.removeChild(items.key);
+                    player.hasKey = true;
+                    HUD.key.gotoAndStop('key');
+                }
+            }
+            if (typeof  items.weapon != "undefined") {
+                if (playerHitTest(items.weapon) && !player.hasWeapon) {
+                    stage.removeChild(items.weapon);
+                    createjs.Sound.play("keyPickup");
+                    player.hasWeapon = true;
+                    HUD.weapon.gotoAndStop('weapon');
+                }
             }
         }
     }
-
 }
 
 window.addEventListener('load', preload);
