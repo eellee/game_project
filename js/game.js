@@ -71,6 +71,7 @@ function queueComplete() {
     var lvl = queue.getResult("levelJson");
     levels = lvl.levels;
 
+
     createjs.Ticker.setFPS(60);
     createjs.Ticker.on('tick', updateScene);
 
@@ -94,7 +95,6 @@ function setupLevel() {
             grid[i].push(null);
         }
     }
-
     var playerCol, playerRow;
     for(var row = 0; row < level.length; row++){
         for(var col = 0; col < level[row].length; col++) {
@@ -203,6 +203,8 @@ function setupLevel() {
     player.y = 4 * tileSize;
     player.width =  60;
     player.height = 90;
+    player.isMoving = false;
+    player.currentDirection = "down";
     player.regX = 0;
     player.regY = 90;
     player.row = playerRow;
@@ -213,6 +215,7 @@ function setupLevel() {
     player.dialogueStarted = false;
     player.hasWeapon = false;
     stage.addChild(player);
+    addEnemies();
 
 
     // LEVEL 1
@@ -247,6 +250,9 @@ function keyLifted(e) {
     switch (e.keyCode) {
         case 13:
             keys.enter = false;
+        case 32:
+            defend();//when pressing space, xena will attack enemy and function defend will start
+            keys.space = false;
             break;
         case 37:
             keys.left = false;
@@ -315,6 +321,7 @@ function movePlayer() {
         if (player.currentAnimation != "left") {
             player.currentAnimation = "left";
             player.gotoAndPlay('left');
+            player.currentDirection = "left";
         }
     }
     else if (keys.right) {
@@ -329,6 +336,7 @@ function movePlayer() {
         if (player.currentAnimation != "right") {
             player.currentAnimation = "right";
             player.gotoAndPlay('right');
+            player.currentDirection = "right";
         }
     }
     else if (keys.up) {
@@ -344,6 +352,7 @@ function movePlayer() {
         if (player.currentAnimation != "up") {
             player.currentAnimation = "up";
             player.gotoAndPlay('up');
+            player.currentDirection = "up";
         }
 
     }
@@ -360,6 +369,7 @@ function movePlayer() {
         if (player.currentAnimation != "down") {
             player.currentAnimation = "down";
             player.gotoAndPlay('down');
+            player.currentDirection = "down";
         }
     }
 }
@@ -374,6 +384,7 @@ function walkable(y, x) {
     } else {
         return false;
     }
+
 }
 function playerHitTest(object) {
     var playerTileXRight = Math.floor((player.x  + 45)  / tileSize),//TODO Fix this. Should be + player.width but player is wider than one tile
@@ -399,7 +410,36 @@ function createHUD() {
 
         HUD.hearts[i] = HUDContainer.addChild(heart);
     }
+}
+/*enemies move*/
+function moveEnemies() {
+    for (var i = soldiers.length - 1; i >= 0; i--) {
+        var leftness = Math.floor(soldiers[i].x - player.x);
+        var rightness = Math.floor(player.x - soldiers[i].x);
+        var aboveness = Math.floor(soldiers[i].y - player.y);
+        var belowness = Math.floor(player.y - soldiers[i].y);
+        var biggest = Math.max(leftness, rightness, aboveness, belowness);
 
+        if (leftness == biggest && currentAnimation != "left"){
+            soldiers[i].x-=settings.enemySpeed;
+            soldiers[i].currentAnimation = "left";
+            soldiers[i].gotoAndPlay('left');
+        }
+        if (rightness == biggest && currentAnimation != "right"){
+            soldiers[i].x+=settings.enemySpeed;
+            soldiers[i].currentAnimation = "right";
+            soldiers[i].gotoAndPlay('right');
+        }
+        if (aboveness == biggest && currentAnimation != "up"){
+            soldiers[i].y-=settings.enemySpeed;
+            soldiers[i].currentAnimation = "up";
+            soldiers[i].gotoAndPlay('up');
+        }
+        if (belowness == biggest && currentAnimation != "down"){
+            soldiers[i].y+=settings.enemySpeed;
+            soldiers[i].currentAnimation = "down";
+            soldiers[i].gotoAndPlay('down');
+        }
     var keySS = new createjs.SpriteSheet(queue.getResult("keySS"));
     HUD.key = new createjs.Sprite(keySS, "emptyKey");
     HUD.key.x = 10;
@@ -414,6 +454,17 @@ function createHUD() {
     HUDContainer.addChild(HUD.weapon);
     stage.addChild(HUD.weapon);
 }
+    }
+}
+// HIT test
+function hitTest(rect1,rect2){
+    if( rect1.x >= rect2.x + rect2.width
+        || rect1.x + rect1.width <= rect2.x
+        || rect1.y >= rect2.y + rect2.height
+        || rect1.y + rect1.height <= rect2.y ){
+        return false;
+    }
+    else return true;
 
 function spawnNPC() {
     items.npc = new createjs.Bitmap("assets/img/npc.png");
