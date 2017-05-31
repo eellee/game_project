@@ -298,14 +298,6 @@ function moveEnemiesSecond() {
     }
 }
 
-function armorAppear() {
-    var enemiesSecond = new createjs.SpriteSheet(queue.getResult("enemiesSecond"));
-    var armorAppear = new createjs.Sprite(enemiesSecond, "armor");
-    armorAppear.x = 70;
-    armorAppear.y = 100;
-    stage.addChild(armorAppear);
-}
-
 function addEnergy() {
     var enemiesSecond = new createjs.SpriteSheet(queue.getResult("enemiesSecond"));
     energy = new createjs.Sprite(enemiesSecond, "energySM");
@@ -355,10 +347,13 @@ function handleHits() {
 
         if (playerHitTest(enemies[i])) {
             settings.lives--;
-            {console.log("HIT")}
+            console.log("HIT")
             //HUDContainer.push(settings.heart);
             if(settings.lives<=0)
             {console.log("DEAD")}
+
+
+
             stage.removeChild(enemies[i]);
             enemies.splice(i,1);
 
@@ -368,13 +363,22 @@ function handleHits() {
 
     if (playerHitTest(energy)) {
         settings.energy++;
-        {console.log("more energy")}
+
+        console.log("more energy")
             if(settings.energy>=3)
             armorAppear();
-        {console.log("APPEAR ARMOR")}
+        console.log("APPEAR ARMOR")
         }
 
 
+}
+
+function armorAppear() {
+    var enemiesSecond = new createjs.SpriteSheet(queue.getResult("enemiesSecond"));
+    var armorAppear = new createjs.Sprite(enemiesSecond, "armor");
+    armorAppear.x = 70;
+    armorAppear.y = 100;
+    stage.addChild(armorAppear);
 }
 
 window.addEventListener('load', preload);
