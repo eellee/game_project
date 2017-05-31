@@ -1,6 +1,0 @@
-<TextureAtlas imagePath="sprites.png">
-	<SubTexture name="chest_01.png" x="0" y="45" width="36" height="32"/>
-	<SubTexture name="chest_02.png" x="37" y="0" width="36" height="37"/>
-	<SubTexture name="chest_03.png" x="37" y="37" width="36" height="41"/>
-	<SubTexture name="chest_04.png" x="0" y="0" width="37" height="45"/>
-</TextureAtlas>

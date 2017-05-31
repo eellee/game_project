@@ -1,0 +1,9 @@
+{
+
+  "images": ["assets/img/HUDenergy.png"],
+  "frames": {"width":35, "height":45, "regX": 0, "regY":0},
+  "animations": {
+    "emptyEnergy": [0],
+    "energy": [1]
+  }
+}

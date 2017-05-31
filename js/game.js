@@ -1,6 +1,5 @@
-var stage, queue, player, grid = [], level, HUDContainer, guards=[], soldiers=[], discs=[], enemies=[], energy;
-var levels = [], currentLevel =0, tileSize = 45, currentAnimation = "idle", followPlayer=false;
-var armor; //TODO fix
+var stage, queue, player, grid = [], level, HUDContainer, guards=[], soldiers=[], discs=[], enemies=[], energySprite;
+var levels = [], currentLevel =-1, tileSize = 45, currentAnimation = "idle", followPlayer=false;
 var keys = {
     left: false,
     right: false,
@@ -13,22 +12,19 @@ var settings = {
     playerSpeed: 2,
     discSpeed: 3,
     lives: 3,
-    lastInjured: new Date(),
-    enemySpeed: 0.2, //TODO multiply enemyspeed by 10 in level 2
+    enemySpeed: 0.2,
     enemyCount: 20,
     soldierLastMoved: [],
-    gameOver: false,
     energy: 0,
-    lastEnergy: Date.now(),
     energySpeed: 2
-};
-var game = {
-    gamePaused: false
 };
 var HUD = {
     key: {},
     weapon: {},
-    hearts: {}
+    hearts: {},
+    heartOutlines: {},
+    energy: {},
+    energyOutlines: {}
 };
 var items = {
     key: {},
@@ -50,6 +46,14 @@ var dialogue = {
     lastChanged: {},
     instructions: {}
 
+};
+var state = {
+    levelComplete: false,
+    lastInjured: new Date(),
+    gamePaused: false,
+    lastEnergy: Date.now(),
+    gameOver: false,
+    tweenComplete: false
 };
 var guardInit = [
     [6, 10, "right", 6, 14],
@@ -73,6 +77,7 @@ function preload() {
             {id: "enemiesSecond", src: "assets/json/enemiesSecondLevel.json"},
             {id: "guardSS", src: "assets/json/guard.json"},
             {id: "keySS", src: "assets/json/key.json"},
+            {id: "energySS", src: "assets/json/energy.json"},
             {id: "weaponSS", src: "assets/json/weapon.json"},
             {id: "chestSS", src: "assets/json/chest.json"},
             {id: "keyPickup", src: "assets/audio/wildweasel_keypickup.wav"}, //Freesound.org
@@ -205,13 +210,10 @@ function setupLevel() {
         items.chest.y = 10 * tileSize;
         stage.addChild(items.chest);
 
-        settings.itemsSpawned = false;
         spawnNPC();
     }
     var playerSS = new createjs.SpriteSheet(queue.getResult("playerRagsSS"));
     player = new createjs.Sprite(playerSS, "idle");
-    player.x = 13 * tileSize;
-    player.y = 4 * tileSize;
     player.width =  60;
     player.height = 90;
     player.isMoving = false;
@@ -226,18 +228,25 @@ function setupLevel() {
     player.dialogueStarted = false;
     settings.lives = 3;
     stage.addChild(player);
+    state.tweenComplete = false;
+    state.itemsSpawned = false;
 
     // LEVEL 1
     if (currentLevel == 0)
     {
         player.hasWeapon = false;
+        player.x = 13 * tileSize;
+        player.y = 4 * tileSize;
         spawnGuards();
     }
     // LEVEL 2
     if (currentLevel == 1)
     {
+        state.itemsSpawned = false;
         player.hasWeapon = true;
         items.armor.isSpawned = false;
+        player.x = 10 * tileSize;
+        player.y = 10 * tileSize;
         addEnemiesSecond();
         addEnergy();
     }
@@ -246,7 +255,8 @@ function setupLevel() {
     {
         addEnemies();
         player.hasWeapon = true;
-        HUD.weapon.gotoAndStop("weapon");
+        player.x = 10 * tileSize;
+        player.y = 10 * tileSize;
     }
     HUDContainer = new createjs.Container();
     HUDContainer.x = 25;
@@ -289,7 +299,10 @@ function keyLifted(e) {
             keys.enter = false;
             break;
         case 32:
-            defend();//when pressing space, xena will attack enemy and function defend will start
+            if (currentLevel == 2)
+            {
+                defend(); //when pressing space, xena will attack enemy and function defend will start
+            }
             keys.space = false;
             break;
         case 37:
@@ -317,25 +330,25 @@ function keyPressed(e) {
             keys.space = true;
             break;
         case 37:
-            if (!game.gamePaused && player.isAlive)
+            if (!state.gamePaused && player.isAlive)
             {
                 keys.left = true;
             }
             break;
         case 38:
-            if (!game.gamePaused && player.isAlive)
+            if (!state.gamePaused && player.isAlive)
             {
                 keys.up = true;
             }
             break;
         case 39:
-            if (!game.gamePaused && player.isAlive)
+            if (!state.gamePaused && player.isAlive)
             {
                 keys.right = true;
             }
             break;
         case 40:
-            if (!game.gamePaused && player.isAlive)
+            if (!state.gamePaused && player.isAlive)
             {
                 keys.down = true;
             }
@@ -349,9 +362,9 @@ function movePlayer() {
     if (player.y < player.height / 2) { // Unlock next level
         setupLevel();
     }
-    if (keys.enter && settings.gameOver) {
+    if (keys.enter && state.gameOver) {
         currentLevel = -1;
-        settings.gameOver = false;
+        state.gameOver = false;
         setupLevel();
     }
     if (keys.left) {
@@ -446,7 +459,7 @@ function playerHitTest(object) {
     }
 }
 function createHUD() {
-    for (var i = 0; i < settings.lives; i++)
+    for (var i = 0; i < settings.lives; i++)//hearts
     {
         var heart = new createjs.Shape();
         heart.graphics.beginFill("red");
@@ -455,6 +468,16 @@ function createHUD() {
         heart.x += i * 50 + 10;
 
         HUD.hearts[i] = HUDContainer.addChild(heart);
+    }
+    for (var j = 0; j < settings.lives; j++)
+    {
+        var heartOutline = new createjs.Shape();
+        heartOutline.graphics.beginStroke("red");
+        heartOutline.graphics.moveTo(0, -12).curveTo(1, -20, 8, -20).curveTo(16, -20, 16, -10).curveTo(16, 0, 0, 12);
+        heartOutline.graphics.curveTo(-16, 0, -16, -10).curveTo(-16, -20, -8, -20).curveTo(-1, -20, 0, -12);
+        heartOutline.x += j * 50 + 10;
+
+        HUD.heartOutlines[i] = HUDContainer.addChild(heartOutline);
     }
     var keySS = new createjs.SpriteSheet(queue.getResult("keySS"));
     HUD.key = new createjs.Sprite(keySS, "emptyKey");
@@ -472,6 +495,15 @@ function createHUD() {
 
     if (currentLevel == 1 || currentLevel == 2) {
         HUD.weapon.gotoAndStop("weapon");
+    }
+
+    for (var l = 0; l < 3; l++) {
+        energySS = new createjs.SpriteSheet(queue.getResult("energySS"));
+        var energyOutlines = new createjs.Sprite(energySS, "emptyEnergy");
+        energyOutlines.width = 45;
+        energyOutlines.x = stage.canvas.width - energyOutlines.width * l - 80;
+        energyOutlines.y = -20;
+        HUD.energyOutlines[l] = HUDContainer.addChild(energyOutlines);
     }
 }
 function spawnNPC() {
@@ -533,7 +565,7 @@ function updateDialogue(){
                     stage.removeChild(dialogue.textContainer);
                     createjs.Sound.play("keyPickup");
                     HUD.key.gotoAndPlay('key');
-                    game.gamePaused = false;
+                    state.gamePaused = false;
                     player.hasKey = true;
                 }
                 break;
@@ -546,7 +578,7 @@ function updateDialogue(){
     }
 }
 function spawnItems() {
-    settings.itemsSpawned = true;
+    state.itemsSpawned = true;
     var keySS = new createjs.SpriteSheet(queue.getResult("keySS"));
     items.key = new createjs.Sprite(keySS, "key");
     items.key.x = 10 * tileSize;
@@ -568,7 +600,7 @@ function spawnItems() {
     createjs.Tween.get(items.weapon, {loop: false})
         .to({x: 14 * tileSize, rotation: 360}, 1000)
         .call(function () {
-            settings.tweenComplete = true;
+            state.tweenComplete = true;
         });
 }
 function spawnGuards() {
@@ -615,7 +647,7 @@ function handleCollisions(){
             if (!player.dialogueStarted)
             {
                 player.dialogueStarted = true;
-                game.gamePaused = true;
+                state.gamePaused = true;
                 player.gotoAndStop("idle");
                 startDialogue();
             } else {
@@ -653,12 +685,11 @@ function handleCollisions(){
             var guardPosX = Math.floor(guards[i].x / tileSize);
 
             if(playerHitTest(grid[guardInit[i][1]][guardPosX])){
-                var elapsed = new Date() - settings.lastInjured;
+                var elapsed = new Date() - state.lastInjured;
 
                 if (elapsed > 1000){
-                    console.log(settings.lives);
                     settings.lives--;
-                    settings.lastInjured = new Date();
+                    state.lastInjured = new Date();
                     HUDContainer.removeChild(HUD.hearts[settings.lives]);
 
                     if (settings.lives <= 0 && player.isAlive) {
@@ -684,13 +715,15 @@ function handleCollisions(){
             }
         }
         if(playerHitTest(grid[10][10]) && player.isAlive) {     // Chest collision
-            if (!settings.itemsSpawned)
+            if (!state.itemsSpawned)
             {
                 items.chest.gotoAndStop('chestOpen');
                 spawnItems();
+                state.itemsSpawned = true;
+                stage.removeChild(items.chest);
             }
         }
-        if (settings.tweenComplete) {
+        if (state.tweenComplete) {
             if (typeof items.key != "undefined") {
                 if (playerHitTest(items.key) && !player.hasKey) {
                     createjs.Sound.play("keyPickup");
@@ -709,13 +742,28 @@ function handleCollisions(){
             }
         }
     }
+    if (currentLevel == 1) {
+        if (playerHitTest((grid[2][9]) || grid[2][10]) && player.hasKey){ // Level two door collision
+            grid[1][9].gotoAndPlay('wholeFloor');
+            grid[1][9].tileNumber = 5;
+            grid[0][9].gotoAndPlay('wholeFloor');
+            grid[0][9].tileNumber = 5;
+            grid[0][10].gotoAndPlay('brokenFloor');
+            grid[0][10].tileNumber = 7;
+            grid[1][10].gotoAndPlay('wholeFloor');
+            grid[1][10].tileNumber = 5;
+
+            HUD.key.gotoAndPlay('emptyKey');
+            player.hasKey = false;
+        }
+    }
 }
 function gameOver() {
     stage.removeAllChildren();
     guards = [];
     soldiers = [];
-    settings.tweenComplete = false;
-    settings.gameOver = true;
+    state.tweenComplete = false;
+    state.gameOver = true;
 
     var bg = new createjs.Shape();
     bg.graphics.beginFill("black");
@@ -738,6 +786,157 @@ function gameOver() {
 
 }
 /* =========================================================
+ LEVEL 2
+ ==========================================================*/
+
+function addEnemiesSecond(){
+    if (!state.levelComplete) {
+        var enemiesSecond = new createjs.SpriteSheet(queue.getResult("enemiesSecond"));
+        for(var i= 0; i < 1; i++){
+            var enemyOne = new createjs.Sprite(enemiesSecond, "rockSM");
+            var enemySecond = new createjs.Sprite(enemiesSecond, "fireSM");
+            var enemyThird = new createjs.Sprite(enemiesSecond, "ghostSM");
+            enemyOne.width = 45;
+            enemyOne.height = 45;
+            enemySecond.width = 45;
+            enemySecond.height = 45;
+            enemyThird.width = 45;
+            enemyThird.height = 45;
+            enemyOne.x = Math.floor(Math.random() * 900);
+            enemySecond.x = Math.floor(Math.random() * 900);
+            enemyThird.x = Math.floor(Math.random() * 900);
+            stage.addChild(enemyOne);
+            enemies.push(enemyOne);
+            stage.addChild(enemySecond);
+            enemies.push(enemySecond);
+            stage.addChild(enemyThird);
+            enemies.push(enemyThird);
+        }
+    }
+}
+
+function moveEnemiesSecond() {
+    for (var i = enemies.length - 1; i >= 0; i--) {
+        enemies[i].y += settings.enemySpeed * 10;
+        if (enemies[i].y > stage.canvas.height) {
+            enemies[i].y = Math.floor(Math.random() * 200);
+            enemies[i].x = Math.floor(Math.random() * 900);
+        }
+    }
+}
+function addEnergy() {
+    var enemiesSecond = new createjs.SpriteSheet(queue.getResult("enemiesSecond"));
+    energySprite = new createjs.Sprite(enemiesSecond, "energySM");
+    energySprite.height = 45;
+    energySprite.width = 45;
+    energySprite.regY = 45;
+    energySprite.x = Math.floor(Math.random()*900);
+    energySprite.y = Math.floor(Math.random()*200);
+    stage.addChild(energySprite);
+}
+function moveEnergy() {
+    energySprite.y += settings.energySpeed;
+    if (energySprite.y > stage.canvas.height) {
+        energySprite.y = Math.floor(Math.random() * 200);
+        energySprite.x = Math.floor(Math.random() * 900);
+    }
+}
+function handleLevelTwoHits() {
+    if (!state.levelComplete){
+        for (var i = enemies.length-1; i >= 0; i--) {
+            if (playerHitTest(enemies[i])) {
+                settings.lives--;
+                HUDContainer.removeChild(HUD.hearts[settings.lives]);
+
+                if (settings.lives <= 0 && player.isAlive) {
+                    player.isAlive = false;
+                    gameOver();
+                }
+                stage.removeChild(enemies[i]);
+                enemies.splice(i,1);
+            }
+        }
+        if (playerHitTest(energySprite)) {                    // Energy hit test
+            if (Date.now() - state.lastEnergy > 500) {
+                settings.energy++;
+                for (var j = 0; j < settings.energy; j++) {
+                    HUD.energyOutlines[j].gotoAndPlay('energy');
+                }
+                state.lastEnergy = Date.now();
+                if(settings.energy>=3 && items.armor.isSpawned == false) {
+                    levelTwoReward();
+                    items.armor.isSpawned = true;
+                }
+            }
+        }
+    }
+
+    if (playerHitTest(items.chest) && !state.itemsSpawned) {
+        items.chest.gotoAndStop("chestOpen");
+        endLevelTwo();
+    }
+
+    if (state.tweenComplete) {
+        if (typeof items.key != "undefined") {
+            if (playerHitTest(items.key) && !player.hasKey) {
+                createjs.Sound.play("keyPickup");
+                stage.removeChild(items.key);
+                player.hasKey = true;
+                HUD.key.gotoAndStop('key');
+            }
+        }
+        if (typeof  items.armor != "undefined") {
+            if (playerHitTest(items.armor) && !player.hasArmor) {
+                stage.removeChild(items.armor);
+                createjs.Sound.play("keyPickup");
+                player.hasArmor = true;
+            }
+        }
+    }
+}
+function levelTwoReward() {
+    for (var i = enemies.length - 1; i >= 0; i--) {
+        stage.removeChild(enemies[i])
+    }
+    stage.removeChild(energySprite);
+    state.levelComplete = true;
+
+    var chestSS = new createjs.SpriteSheet(queue.getResult("chestSS"));
+    items.chest = new createjs.Sprite(chestSS, "chestClosed");
+    items.chest.x = 10 * tileSize;
+    items.chest.y = 7 * tileSize;
+    stage.addChild(items.chest);
+}
+function endLevelTwo() {
+    state.itemsSpawned = true;
+    stage.removeChild(items.chest);
+    var keySS = new createjs.SpriteSheet(queue.getResult("keySS"));
+    items.key = new createjs.Sprite(keySS, "key");
+    items.key.x = 10 * tileSize;
+    items.key.y = 7 * tileSize;
+    items.key.width = tileSize;
+    items.key.height = tileSize;
+    stage.addChild(items.key);
+
+    createjs.Tween.get(items.key, {loop: false})
+        .to({x: 6 * tileSize, rotation: 360}, 1000);
+
+    var armorSS = new createjs.SpriteSheet(queue.getResult("enemiesSecond"));
+    items.armor = new createjs.Sprite(armorSS, "armor");
+    items.armor.x = 10 * tileSize;
+    items.armor.y = 7 * tileSize;
+    items.armor.width = tileSize;
+    items.armor.height = tileSize;
+    stage.addChild(items.armor);
+
+    createjs.Tween.get(items.armor, {loop: false})
+        .to({x: 14 * tileSize, rotation: 360}, 1000)
+        .call(function () {
+            state.tweenComplete = true;
+        })
+
+}
+/* =========================================================
  LEVEL 3
  ==========================================================*/
 /*enemies appear*/
@@ -745,8 +944,8 @@ function addEnemies() {
     var enemySS = new createjs.SpriteSheet(queue.getResult("guardSS"));
     for(var i=0; i < settings.enemyCount; i++){
         var enemy = new createjs.Sprite(enemySS, "idle");
-        enemy.x = 10 * tileSize * Math.random();
-        enemy.y = 10* tileSize * Math.random();
+        enemy.x = 20 * tileSize * Math.random();
+        enemy.y = 13 * tileSize * Math.random();
         enemy.width = player.width;
         enemy.height = tileSize;
         enemy.regY = 45;
@@ -847,7 +1046,6 @@ function defend() {
     weapon.height = 45;
     weapon.direction = player.currentDirection;
     stage.addChild(weapon);
-    weapon.isMoving = false;
     discs.push(weapon);
 
 }
@@ -873,92 +1071,4 @@ function weaponsMoving(){
         }
     }
 }
-
-/* =========================================================
-                        LEVEL 2
- ==========================================================*/
-
-function addEnemiesSecond(){
-    var enemiesSecond = new createjs.SpriteSheet(queue.getResult("enemiesSecond"));
-    for(var i= 0; i < 1; i++){
-        var enemyOne = new createjs.Sprite(enemiesSecond, "rockSM");
-        var enemySecond = new createjs.Sprite(enemiesSecond, "fireSM");
-        var enemyThird = new createjs.Sprite(enemiesSecond, "ghostSM");
-        enemyOne.width = 45;
-        enemyOne.height = 45;
-        enemySecond.width = 45;
-        enemySecond.height = 45;
-        enemyThird.width = 45;
-        enemyThird.height = 45;
-        enemyOne.x = Math.floor(Math.random() * 900);
-        enemySecond.x = Math.floor(Math.random() * 900);
-        enemyThird.x = Math.floor(Math.random() * 900);
-        stage.addChild(enemyOne);
-        enemies.push(enemyOne);
-        stage.addChild(enemySecond);
-        enemies.push(enemySecond);
-        stage.addChild(enemyThird);
-        enemies.push(enemyThird);
-    }
-}
-
-function moveEnemiesSecond() {
-    for (var i = enemies.length - 1; i >= 0; i--) {
-        enemies[i].y += settings.enemySpeed;
-        if (enemies[i].y > stage.canvas.height) {
-            enemies[i].y = Math.floor(Math.random() * 900);
-            enemies[i].x = Math.floor(Math.random() * 900);
-        }
-    }
-}
-function addEnergy() {
-    var enemiesSecond = new createjs.SpriteSheet(queue.getResult("enemiesSecond"));
-    energy = new createjs.Sprite(enemiesSecond, "energySM");
-    energy.height = 45;
-    energy.width = 45;
-    energy.x = Math.floor(Math.random()*900);
-    energy.y = Math.floor(Math.random()*900);
-    stage.addChild(energy);
-}
-function moveEnergy() {
-    energy.y += settings.energySpeed;
-    if (energy.y > stage.canvas.height) {
-        energy.y = Math.floor(Math.random() * 900);
-        energy.x = Math.floor(Math.random() * 900);
-    }
-}
-function handleLevelTwoHits() {
-    for (var i = enemies.length-1; i >= 0; i--) {
-        if (playerHitTest(enemies[i])) {
-            settings.lives--;
-            console.log("HIT");
-            //HUDContainer.push(settings.heart);
-            if(settings.lives<=0){
-                console.log("DEAD")
-            }
-            stage.removeChild(enemies[i]);
-            enemies.splice(i,1);
-        }
-    }
-    if (playerHitTest(energy)) {
-        if (Date.now() - settings.lastEnergy > 500) {
-            settings.energy++;
-            settings.lastEnergy = Date.now();
-            console.log("more energy");
-            if(settings.energy>=3 && items.armor.isSpawned == false) {
-                armorAppear();
-                items.armor.isSpawned = true;
-                console.log("APPEAR ARMOR")
-            }
-        }
-    }
-}
-function armorAppear() {
-    var enemiesSecond = new createjs.SpriteSheet(queue.getResult("enemiesSecond"));
-    var armorAppear = new createjs.Sprite(enemiesSecond, "armor");
-    armorAppear.x = 70;
-    armorAppear.y = 100;
-    stage.addChild(armorAppear);
-}
-
 window.addEventListener('load', preload);
