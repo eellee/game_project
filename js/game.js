@@ -1,5 +1,6 @@
-var stage, queue, player, grid = [], level, HUDContainer, guards=[], soldiers=[], discs=[];
-var levels = [], currentLevel =-1, tileSize = 45, currentAnimation = "idle", followPlayer=false;
+var stage, queue, player, grid = [], level, HUDContainer, guards=[], soldiers=[], discs=[], enemies=[], energy;
+var levels = [], currentLevel =0, tileSize = 45, currentAnimation = "idle", followPlayer=false;
+var armor; //TODO fix
 var keys = {
     left: false,
     right: false,
@@ -13,10 +14,13 @@ var settings = {
     discSpeed: 3,
     lives: 3,
     lastInjured: new Date(),
-    enemySpeed: 0.2,
+    enemySpeed: 0.2, //TODO multiply enemyspeed by 10 in level 2
     enemyCount: 20,
     soldierLastMoved: [],
-    gameOver: false
+    gameOver: false,
+    energy: 0,
+    lastEnergy: Date.now(),
+    energySpeed: 2
 };
 var game = {
     gamePaused: false
@@ -30,7 +34,8 @@ var items = {
     key: {},
     npc: {},
     chest: {},
-    weapon: {}
+    weapon: {},
+    armor: {}
 };
 var dialogue = {
     speechStage: 0,
@@ -39,9 +44,9 @@ var dialogue = {
     sb: {},
     image: {},
     speech: [
-    "Hello, my child...",
-    "You do not belong here.",
-    "Take this key and escape!"],
+        "Hello, my child...",
+        "You do not belong here.",
+        "Take this key and escape!"],
     lastChanged: {},
     instructions: {}
 
@@ -65,6 +70,7 @@ function preload() {
             {id: "levelJson", src: "assets/json/levels.json"},
             {id: "geometrySprites", src: "assets/json/tiles.json"},
             {id: "playerRagsSS", src: "assets/json/herotatters.json"},
+            {id: "enemiesSecond", src: "assets/json/enemiesSecondLevel.json"},
             {id: "guardSS", src: "assets/json/guard.json"},
             {id: "keySS", src: "assets/json/key.json"},
             {id: "weaponSS", src: "assets/json/weapon.json"},
@@ -227,7 +233,16 @@ function setupLevel() {
         player.hasWeapon = false;
         spawnGuards();
     }
+    // LEVEL 2
     if (currentLevel == 1)
+    {
+        player.hasWeapon = true;
+        items.armor.isSpawned = false;
+        addEnemiesSecond();
+        addEnergy();
+    }
+    // LEVEL 3
+    if (currentLevel == 2)
     {
         addEnemies();
         player.hasWeapon = true;
@@ -248,7 +263,16 @@ function updateScene(e) {
     {
         moveGuards();
     }
+    // LEVEL 2
     if (currentLevel == 1)
+    {
+        player.hasWeapon = true;
+        moveEnemiesSecond();
+        moveEnergy();
+        handleLevelTwoHits();
+    }
+    // LEVEL 3
+    if (currentLevel == 2)
     {
         moveEnemies();
         levelThreeHitTest();
@@ -714,8 +738,8 @@ function gameOver() {
 
 }
 /* =========================================================
-                            LEVEL 3
-==========================================================*/
+ LEVEL 3
+ ==========================================================*/
 /*enemies appear*/
 function addEnemies() {
     var enemySS = new createjs.SpriteSheet(queue.getResult("guardSS"));
@@ -848,6 +872,93 @@ function weaponsMoving(){
             stage.removeChild(discs[i]);
         }
     }
+}
+
+/* =========================================================
+                        LEVEL 2
+ ==========================================================*/
+
+function addEnemiesSecond(){
+    var enemiesSecond = new createjs.SpriteSheet(queue.getResult("enemiesSecond"));
+    for(var i= 0; i < 1; i++){
+        var enemyOne = new createjs.Sprite(enemiesSecond, "rockSM");
+        var enemySecond = new createjs.Sprite(enemiesSecond, "fireSM");
+        var enemyThird = new createjs.Sprite(enemiesSecond, "ghostSM");
+        enemyOne.width = 45;
+        enemyOne.height = 45;
+        enemySecond.width = 45;
+        enemySecond.height = 45;
+        enemyThird.width = 45;
+        enemyThird.height = 45;
+        enemyOne.x = Math.floor(Math.random() * 900);
+        enemySecond.x = Math.floor(Math.random() * 900);
+        enemyThird.x = Math.floor(Math.random() * 900);
+        stage.addChild(enemyOne);
+        enemies.push(enemyOne);
+        stage.addChild(enemySecond);
+        enemies.push(enemySecond);
+        stage.addChild(enemyThird);
+        enemies.push(enemyThird);
+    }
+}
+
+function moveEnemiesSecond() {
+    for (var i = enemies.length - 1; i >= 0; i--) {
+        enemies[i].y += settings.enemySpeed;
+        if (enemies[i].y > stage.canvas.height) {
+            enemies[i].y = Math.floor(Math.random() * 900);
+            enemies[i].x = Math.floor(Math.random() * 900);
+        }
+    }
+}
+function addEnergy() {
+    var enemiesSecond = new createjs.SpriteSheet(queue.getResult("enemiesSecond"));
+    energy = new createjs.Sprite(enemiesSecond, "energySM");
+    energy.height = 45;
+    energy.width = 45;
+    energy.x = Math.floor(Math.random()*900);
+    energy.y = Math.floor(Math.random()*900);
+    stage.addChild(energy);
+}
+function moveEnergy() {
+    energy.y += settings.energySpeed;
+    if (energy.y > stage.canvas.height) {
+        energy.y = Math.floor(Math.random() * 900);
+        energy.x = Math.floor(Math.random() * 900);
+    }
+}
+function handleLevelTwoHits() {
+    for (var i = enemies.length-1; i >= 0; i--) {
+        if (playerHitTest(enemies[i])) {
+            settings.lives--;
+            console.log("HIT");
+            //HUDContainer.push(settings.heart);
+            if(settings.lives<=0){
+                console.log("DEAD")
+            }
+            stage.removeChild(enemies[i]);
+            enemies.splice(i,1);
+        }
+    }
+    if (playerHitTest(energy)) {
+        if (Date.now() - settings.lastEnergy > 500) {
+            settings.energy++;
+            settings.lastEnergy = Date.now();
+            console.log("more energy");
+            if(settings.energy>=3 && items.armor.isSpawned == false) {
+                armorAppear();
+                items.armor.isSpawned = true;
+                console.log("APPEAR ARMOR")
+            }
+        }
+    }
+}
+function armorAppear() {
+    var enemiesSecond = new createjs.SpriteSheet(queue.getResult("enemiesSecond"));
+    var armorAppear = new createjs.Sprite(enemiesSecond, "armor");
+    armorAppear.x = 70;
+    armorAppear.y = 100;
+    stage.addChild(armorAppear);
 }
 
 window.addEventListener('load', preload);

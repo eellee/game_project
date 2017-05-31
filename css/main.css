@@ -1,0 +1,13 @@
+h4 {
+    font-family: "Trebuchet MS", "sans-serif";
+    text-align: center;
+    color: #5A7D7C;
+}
+
+.blink_me {
+    animation: blinker 1s linear infinite;
+}
+
+@keyframes blinker {
+    50% { opacity: 0; }
+}
