@@ -80,6 +80,7 @@ function preload() {
             {id: "weaponSS", src: "assets/json/weapon.json"},
             {id: "chestSS", src: "assets/json/chest.json"},
             {id: "keyPickup", src: "assets/audio/wildweasel_keypickup.wav"}, //Freesound.org
+            {id: "bgMusic", src: "assets/audio/8bit_Dungeon_Level_Video_Classica.mp3"}, //Youtube audio library
             {id: "touch", src:"assets/audio/touchEnemy.wav"},
             {id: "hit", src:"assets/audio/enemyHit.wav"}
         ]
@@ -88,7 +89,8 @@ function preload() {
 function queueComplete() {
     var lvl = queue.getResult("levelJson");
     levels = lvl.levels;
-
+    var bgMusic = createjs.Sound.play("bgMusic");
+    bgMusic.volume = 0.3;
 
     createjs.Ticker.setFPS(60);
     createjs.Ticker.on('tick', updateScene);
@@ -761,33 +763,7 @@ function handleCollisions(){
         }
     }
 }
-function gameOver() {
-    stage.removeAllChildren();
-    guards = [];
-    soldiers = [];
-    state.tweenComplete = false;
-    state.gameOver = true;
 
-    var bg = new createjs.Shape();
-    bg.graphics.beginFill("black");
-    bg.graphics.drawRect(0, 0, 900, 630);
-    var gameOverText = new createjs.Text("Game Over", "20px Arial Black", "#ffffff");
-    var restartText = new createjs.Text("Press [enter] to continue.", "16px Arial Black", "#ffffff");
-    var gameOverContainer = new createjs.Container();
-    gameOverText.textAlign = "center";
-    gameOverText.x = stage.canvas.width / 2;
-    gameOverText.y = stage.canvas.width / 4;
-    restartText.textAlign = "center";
-    restartText.x = stage.canvas.width / 2;
-    restartText.y = stage.canvas.width / 3;
-    gameOverContainer.width = 900;
-    gameOverContainer.height = 675;
-    gameOverContainer.addChild(bg, gameOverText, restartText);
-    stage.addChild(gameOverContainer);
-
-
-
-}
 /* =========================================================
  LEVEL 2
  ==========================================================*/
@@ -862,6 +838,8 @@ function handleLevelTwoHits() {
         if (playerHitTest(energySprite)) {                    // Energy hit test
             if (Date.now() - state.lastEnergy > 500) {
                 settings.energy++;
+                stage.removeChild(energySprite);
+                addEnergy();
                 for (var j = 0; j < settings.energy; j++) {
                     HUD.energyOutlines[j].gotoAndPlay('energy');
                 }
@@ -1077,5 +1055,33 @@ function weaponsMoving(){
             stage.removeChild(discs[i]);
         }
     }
+}
+
+function gameOver() {
+    stage.removeAllChildren();
+    guards = [];
+    soldiers = [];
+    state.tweenComplete = false;
+    state.gameOver = true;
+
+    var bg = new createjs.Shape();
+    bg.graphics.beginFill("black");
+    bg.graphics.drawRect(0, 0, 900, 630);
+    var gameOverText = new createjs.Text("Game Over", "20px Arial Black", "#ffffff");
+    var restartText = new createjs.Text("Press [enter] to continue.", "16px Arial Black", "#ffffff");
+    var gameOverContainer = new createjs.Container();
+    gameOverText.textAlign = "center";
+    gameOverText.x = stage.canvas.width / 2;
+    gameOverText.y = stage.canvas.width / 4;
+    restartText.textAlign = "center";
+    restartText.x = stage.canvas.width / 2;
+    restartText.y = stage.canvas.width / 3;
+    gameOverContainer.width = 900;
+    gameOverContainer.height = 675;
+    gameOverContainer.addChild(bg, gameOverText, restartText);
+    stage.addChild(gameOverContainer);
+
+
+
 }
 window.addEventListener('load', preload);
