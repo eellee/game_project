@@ -248,6 +248,10 @@ function setupLevel() {
         player.y = 10 * tileSize;
         addEnemiesSecond();
         addEnergy();
+
+        if (typeof items.chest != "undefined") {
+            stage.removeChild(items.chest);
+        }
     }
     // LEVEL 3
     if (currentLevel == 2)
@@ -865,14 +869,17 @@ function handleLevelTwoHits() {
                 if(settings.energy>=3 && items.armor.isSpawned == false) {
                     levelTwoReward();
                     items.armor.isSpawned = true;
+                    state.chestSpawned = true;
                 }
             }
         }
     }
-
-    if (playerHitTest(items.chest) && !state.itemsSpawned) {
-        items.chest.gotoAndStop("chestOpen");
-        endLevelTwo();
+    if (state.chestSpawned){
+        if (playerHitTest(items.chest)) {
+            items.chest.gotoAndStop("chestOpen");
+            endLevelTwo();
+            state.chestSpawned = false;
+        }
     }
 
     if (state.tweenComplete) {
@@ -905,6 +912,7 @@ function levelTwoReward() {
     items.chest.x = 10 * tileSize;
     items.chest.y = 7 * tileSize;
     stage.addChild(items.chest);
+
 }
 function endLevelTwo() {
     state.itemsSpawned = true;
