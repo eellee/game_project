@@ -69,7 +69,6 @@ function preload() {
 
     queue.loadManifest(
         [
-            "assets/img/geometry.png",
             "assets/img/npc.png",
             {id: "levelJson", src: "assets/json/levels.json"},
             {id: "geometrySprites", src: "assets/json/tiles.json"},
