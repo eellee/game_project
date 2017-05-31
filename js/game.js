@@ -13,7 +13,11 @@ var settings = {
     enemySpeed:2,
     energySpeed: 2,
     lives: 3,
-    energy: 0
+    energy: 0,
+    lastEnergy: Date.now()
+};
+var items = {
+    armor: {}
 };
 function preload() {
     stage = new createjs.Stage("myCanvas");
@@ -138,6 +142,9 @@ function setupLevel() {
     player.row = playerRow;
     player.col = playerCol;
     stage.addChild(player);
+
+    //LEVEL 2
+    items.armor.isSpawned = false;
     addEnemiesSecond();
     addEnergy();
 
@@ -283,21 +290,17 @@ function addEnemiesSecond(){
         stage.addChild(enemyThird);
         enemies.push(enemyThird);
     }
-
 }
 
 function moveEnemiesSecond() {
-
     for (var i = enemies.length - 1; i >= 0; i--) {
         enemies[i].y += settings.enemySpeed;
         if (enemies[i].y > stage.canvas.height) {
             enemies[i].y = Math.floor(Math.random() * 900);
             enemies[i].x = Math.floor(Math.random() * 900);
         }
-
     }
 }
-
 function addEnergy() {
     var enemiesSecond = new createjs.SpriteSheet(queue.getResult("enemiesSecond"));
     energy = new createjs.Sprite(enemiesSecond, "energySM");
@@ -307,24 +310,18 @@ function addEnergy() {
     energy.y = Math.floor(Math.random()*900);
     stage.addChild(energy);
 }
-
 function moveEnergy() {
-
     energy.y += settings.energySpeed;
     if (energy.y > stage.canvas.height) {
         energy.y = Math.floor(Math.random() * 900);
         energy.x = Math.floor(Math.random() * 900);
     }
 }
-
 function updateScene(e) {
-    //moveBullets();
     movePlayer();
     moveEnemiesSecond();
-  //  armorAppear();
     moveEnergy();
-    handleHits();
-   // handleHitsEnergy();
+    handleLevelTwoHits();
     stage.update(e)
 }
 
@@ -340,39 +337,32 @@ function playerHitTest(object) {
     }
     return false;
 }
-function handleHits() {
+function handleLevelTwoHits() {
     for (var i = enemies.length-1; i >= 0; i--) {
-        var enemyPosX = Math.floor(enemies[i].x / tileSize);
-        var enemyPosY = Math.floor(enemies[i].y / tileSize);
-
         if (playerHitTest(enemies[i])) {
             settings.lives--;
-            console.log("HIT")
+            console.log("HIT");
             //HUDContainer.push(settings.heart);
-            if(settings.lives<=0)
-            {console.log("DEAD")}
-
-
-
+            if(settings.lives<=0){
+                console.log("DEAD")
+            }
             stage.removeChild(enemies[i]);
             enemies.splice(i,1);
-
         }
-
     }
-
     if (playerHitTest(energy)) {
-        settings.energy++;
-
-        console.log("more energy")
-            if(settings.energy>=3)
-            armorAppear();
-        console.log("APPEAR ARMOR")
+        if (Date.now() - settings.lastEnergy > 500) {
+            settings.energy++;
+            settings.lastEnergy = Date.now();
+            console.log("more energy");
+            if(settings.energy>=3 && items.armor.isSpawned == false) {
+                armorAppear();
+                items.armor.isSpawned = true;
+                console.log("APPEAR ARMOR")
+            }
         }
-
-
+    }
 }
-
 function armorAppear() {
     var enemiesSecond = new createjs.SpriteSheet(queue.getResult("enemiesSecond"));
     var armorAppear = new createjs.Sprite(enemiesSecond, "armor");
