@@ -1,16 +1,22 @@
-var stage, queue, player, grid = [], level, HUDContainer, guards=[];
-var levels = [], currentLevel =-1, tileSize = 45, currentAnimation = "idle";
+var stage, queue, player, grid = [], level, HUDContainer, guards=[], soldiers=[], discs=[];
+var levels = [], currentLevel =-1, tileSize = 45, currentAnimation = "idle", followPlayer=false;
 var keys = {
     left: false,
     right: false,
     up: false,
     down: false,
-    enter: false
+    enter: false,
+    space: false
 };
 var settings = {
     playerSpeed: 2,
+    discSpeed: 3,
     lives: 3,
-    lastInjured: new Date()
+    lastInjured: new Date(),
+    enemySpeed: 0.2,
+    enemyCount: 20,
+    soldierLastMoved: [],
+    gameOver: false
 };
 var game = {
     gamePaused: false
@@ -63,7 +69,9 @@ function preload() {
             {id: "keySS", src: "assets/json/key.json"},
             {id: "weaponSS", src: "assets/json/weapon.json"},
             {id: "chestSS", src: "assets/json/chest.json"},
-            {id: "keyPickup", src: "assets/audio/wildweasel_keypickup.wav"} //Freesound.org
+            {id: "keyPickup", src: "assets/audio/wildweasel_keypickup.wav"}, //Freesound.org
+            {id: "touch", src:"assets/audio/touchEnemy.wav"},
+            {id: "hit", src:"assets/audio/enemyHit.wav"}
         ]
     );
 }
@@ -183,7 +191,6 @@ function setupLevel() {
             grid[row][col] = tile;
         }
     }
-
     // LEVEL 1
     if (currentLevel == 0){
         var chestSS = new createjs.SpriteSheet(queue.getResult("chestSS"));
@@ -195,8 +202,6 @@ function setupLevel() {
         settings.itemsSpawned = false;
         spawnNPC();
     }
-
-
     var playerSS = new createjs.SpriteSheet(queue.getResult("playerRagsSS"));
     player = new createjs.Sprite(playerSS, "idle");
     player.x = 13 * tileSize;
@@ -213,18 +218,21 @@ function setupLevel() {
     player.isMoving = false;
     player.isAlive = true;
     player.dialogueStarted = false;
-    player.hasWeapon = false;
+    settings.lives = 3;
     stage.addChild(player);
-    addEnemies();
-
 
     // LEVEL 1
     if (currentLevel == 0)
     {
+        player.hasWeapon = false;
         spawnGuards();
     }
-
-
+    if (currentLevel == 1)
+    {
+        addEnemies();
+        player.hasWeapon = true;
+        HUD.weapon.gotoAndStop("weapon");
+    }
     HUDContainer = new createjs.Container();
     HUDContainer.x = 25;
     HUDContainer.y = 25;
@@ -240,7 +248,12 @@ function updateScene(e) {
     {
         moveGuards();
     }
-
+    if (currentLevel == 1)
+    {
+        moveEnemies();
+        levelThreeHitTest();
+        weaponsMoving();
+    }
     stage.update(e)
 }
 
@@ -250,6 +263,7 @@ function keyLifted(e) {
     switch (e.keyCode) {
         case 13:
             keys.enter = false;
+            break;
         case 32:
             defend();//when pressing space, xena will attack enemy and function defend will start
             keys.space = false;
@@ -275,26 +289,29 @@ function keyPressed(e) {
         case 13:
             keys.enter = true;
             break;
+        case 32:
+            keys.space = true;
+            break;
         case 37:
-            if (!game.gamePaused)
+            if (!game.gamePaused && player.isAlive)
             {
                 keys.left = true;
             }
             break;
         case 38:
-            if (!game.gamePaused)
+            if (!game.gamePaused && player.isAlive)
             {
                 keys.up = true;
             }
             break;
         case 39:
-            if (!game.gamePaused)
+            if (!game.gamePaused && player.isAlive)
             {
                 keys.right = true;
             }
             break;
         case 40:
-            if (!game.gamePaused)
+            if (!game.gamePaused && player.isAlive)
             {
                 keys.down = true;
             }
@@ -305,7 +322,12 @@ function movePlayer() {
     if (player.isMoving) {
         handleCollisions();
     }
-    if (player.y < player.height / 2) {
+    if (player.y < player.height / 2) { // Unlock next level
+        setupLevel();
+    }
+    if (keys.enter && settings.gameOver) {
+        currentLevel = -1;
+        settings.gameOver = false;
         setupLevel();
     }
     if (keys.left) {
@@ -410,36 +432,6 @@ function createHUD() {
 
         HUD.hearts[i] = HUDContainer.addChild(heart);
     }
-}
-/*enemies move*/
-function moveEnemies() {
-    for (var i = soldiers.length - 1; i >= 0; i--) {
-        var leftness = Math.floor(soldiers[i].x - player.x);
-        var rightness = Math.floor(player.x - soldiers[i].x);
-        var aboveness = Math.floor(soldiers[i].y - player.y);
-        var belowness = Math.floor(player.y - soldiers[i].y);
-        var biggest = Math.max(leftness, rightness, aboveness, belowness);
-
-        if (leftness == biggest && currentAnimation != "left"){
-            soldiers[i].x-=settings.enemySpeed;
-            soldiers[i].currentAnimation = "left";
-            soldiers[i].gotoAndPlay('left');
-        }
-        if (rightness == biggest && currentAnimation != "right"){
-            soldiers[i].x+=settings.enemySpeed;
-            soldiers[i].currentAnimation = "right";
-            soldiers[i].gotoAndPlay('right');
-        }
-        if (aboveness == biggest && currentAnimation != "up"){
-            soldiers[i].y-=settings.enemySpeed;
-            soldiers[i].currentAnimation = "up";
-            soldiers[i].gotoAndPlay('up');
-        }
-        if (belowness == biggest && currentAnimation != "down"){
-            soldiers[i].y+=settings.enemySpeed;
-            soldiers[i].currentAnimation = "down";
-            soldiers[i].gotoAndPlay('down');
-        }
     var keySS = new createjs.SpriteSheet(queue.getResult("keySS"));
     HUD.key = new createjs.Sprite(keySS, "emptyKey");
     HUD.key.x = 10;
@@ -453,19 +445,11 @@ function moveEnemies() {
     HUD.weapon.y = 50;
     HUDContainer.addChild(HUD.weapon);
     stage.addChild(HUD.weapon);
-}
-    }
-}
-// HIT test
-function hitTest(rect1,rect2){
-    if( rect1.x >= rect2.x + rect2.width
-        || rect1.x + rect1.width <= rect2.x
-        || rect1.y >= rect2.y + rect2.height
-        || rect1.y + rect1.height <= rect2.y ){
-        return false;
-    }
-    else return true;
 
+    if (currentLevel == 1 || currentLevel == 2) {
+        HUD.weapon.gotoAndStop("weapon");
+    }
+}
 function spawnNPC() {
     items.npc = new createjs.Bitmap("assets/img/npc.png");
     items.npc.x = 17 * tileSize;
@@ -655,7 +639,7 @@ function handleCollisions(){
 
                     if (settings.lives <= 0 && player.isAlive) {
                         player.isAlive = false;
-                        console.log("Dead")
+                        gameOver();
                     } else {
                         switch (player.currentAnimation) {
                             case "right":
@@ -699,6 +683,169 @@ function handleCollisions(){
                     HUD.weapon.gotoAndStop('weapon');
                 }
             }
+        }
+    }
+}
+function gameOver() {
+    stage.removeAllChildren();
+    guards = [];
+    soldiers = [];
+    settings.tweenComplete = false;
+    settings.gameOver = true;
+
+    var bg = new createjs.Shape();
+    bg.graphics.beginFill("black");
+    bg.graphics.drawRect(0, 0, 900, 630);
+    var gameOverText = new createjs.Text("Game Over", "20px Arial Black", "#ffffff");
+    var restartText = new createjs.Text("Press [enter] to continue.", "16px Arial Black", "#ffffff");
+    var gameOverContainer = new createjs.Container();
+    gameOverText.textAlign = "center";
+    gameOverText.x = stage.canvas.width / 2;
+    gameOverText.y = stage.canvas.width / 4;
+    restartText.textAlign = "center";
+    restartText.x = stage.canvas.width / 2;
+    restartText.y = stage.canvas.width / 3;
+    gameOverContainer.width = 900;
+    gameOverContainer.height = 675;
+    gameOverContainer.addChild(bg, gameOverText, restartText);
+    stage.addChild(gameOverContainer);
+
+
+
+}
+/* =========================================================
+                            LEVEL 3
+==========================================================*/
+/*enemies appear*/
+function addEnemies() {
+    var enemySS = new createjs.SpriteSheet(queue.getResult("guardSS"));
+    for(var i=0; i < settings.enemyCount; i++){
+        var enemy = new createjs.Sprite(enemySS, "idle");
+        enemy.x = 10 * tileSize * Math.random();
+        enemy.y = 10* tileSize * Math.random();
+        enemy.width = player.width;
+        enemy.height = tileSize;
+        enemy.regY = 45;
+        settings.soldierLastMoved.push(Date.now());
+        stage.addChild(enemy);
+        soldiers.push(enemy);
+
+    }
+}
+/*enemies move*/
+function moveEnemies() {
+    for (var i = soldiers.length - 1; i >= 0; i--) {
+        var leftness = Math.floor(soldiers[i].x - player.x);
+        var rightness = Math.floor(player.x - soldiers[i].x);
+        var aboveness = Math.floor(soldiers[i].y - player.y);
+        var belowness = Math.floor(player.y - soldiers[i].y);
+        var biggest = Math.max(leftness, rightness, aboveness, belowness);
+
+        if (rightness == biggest){
+            soldiers[i].x+=settings.enemySpeed;
+            if (soldiers[i].currentAnimation != "right") {
+                soldiers[i].gotoAndPlay('right');
+                soldiers[i].currentAnimation = "right";
+            }
+        }
+        if (leftness == biggest){
+            soldiers[i].x-=settings.enemySpeed;
+            if (soldiers[i].currentAnimation != "left") {
+                soldiers[i].gotoAndPlay('left');
+                soldiers[i].currentAnimation = "left";
+            }
+        }
+        if (aboveness == biggest){
+            soldiers[i].y-=settings.enemySpeed;
+            if (soldiers[i].currentAnimation != "up") {
+                soldiers[i].gotoAndPlay('up');
+                soldiers[i].currentAnimation = "up";
+            }
+        }
+        if (belowness == biggest){
+            soldiers[i].y+=settings.enemySpeed;
+            if (soldiers[i].currentAnimation != "down") {
+                soldiers[i].gotoAndPlay('down');
+                soldiers[i].currentAnimation = "down";
+            }
+        }
+    }
+}
+// HIT test
+function hitTest(rect1,rect2){
+    if( rect1.x >= rect2.x + rect2.width
+        || rect1.x + rect1.width <= rect2.x
+        || rect1.y >= rect2.y + rect2.height
+        || rect1.y + rect1.height <= rect2.y ){
+        return false;
+    }
+    else return true;
+}
+//hittest between xena and enemy
+function levelThreeHitTest() {
+    for (var i = soldiers.length - 1; i >= 0; i--) {
+        if (typeof soldiers[i] != "undefined") {
+            if (hitTest(player, soldiers[i]) == true) {
+                stage.removeChild(soldiers[i]);
+                soldiers.splice(i, 1);
+                createjs.Sound.play("touch");
+                settings.lives--;
+                HUDContainer.removeChild(HUD.hearts[settings.lives]);
+
+                if (settings.lives <= 0 && player.isAlive) {
+                    player.isAlive = false;
+                    gameOver();
+                }
+            }
+        }
+    }
+    //soldiers and weapons hitTest
+    for (var s = soldiers.length - 1; s >= 0; s--) {
+        for (var w = discs.length - 1; w >= 0; w--) {
+            if (hitTest(soldiers[s], discs[w]) == true) {
+
+                stage.removeChild(soldiers[s]);
+                soldiers.splice(s, 1);
+                stage.removeChild(discs[w]);
+                discs.splice(w, 1);
+                createjs.Sound.play("hit");
+            }
+        }
+    }
+}
+//xena fights back
+function defend() {
+    var weaponSS = new createjs.SpriteSheet(queue.getResult("weaponSS"));
+    var weapon = new createjs.Sprite(weaponSS, "weapon");
+    weapon.x = player.x;
+    weapon.y = player.y - tileSize;
+    weapon.width = 45;
+    weapon.height = 45;
+    weapon.direction = player.currentDirection;
+    stage.addChild(weapon);
+    weapon.isMoving = false;
+    discs.push(weapon);
+
+}
+function weaponsMoving(){
+    for (var i = discs.length - 1; i  >= 0; i--){
+        if (discs[i].direction == "up") {
+            discs[i].y-=settings.discSpeed;
+        }
+        if (discs[i].direction == "down") {
+            discs[i].y+=settings.discSpeed;
+        }
+        if (discs[i].direction == "left"){
+            discs[i].x-=settings.discSpeed;
+        }
+        if (discs[i].direction == "right") {
+            discs[i].x+=settings.discSpeed;
+        }
+        if (discs[i].x > stage.canvas.width || discs[i].x < 0) {
+            stage.removeChild(discs[i]);
+        }
+        if (discs[i].y > stage.canvas.height || discs[i].y < 0) {
+            stage.removeChild(discs[i]);
         }
     }
 }
