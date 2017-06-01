@@ -1,0 +1,20 @@
+{
+
+"images": [
+    "assets/img/forest.png"
+],
+
+"frames": [
+    [1, 1, 715, 341, 0, 0, 0]
+],
+
+"animations": {
+    "forest": { "frames": [0] }
+},
+
+"texturepacker": [
+        "SmartUpdateHash: $TexturePacker:SmartUpdate:69181f8b70c796964d60f20d9a1dbc7e:912bef1a8e541079e04fd45365444e1c:a6d643a6f90b26fab61d32d3ad5fc4d3$",
+        "Created with TexturePacker (https://www.codeandweb.com/texturepacker) for EaselJS"
+]
+
+}
