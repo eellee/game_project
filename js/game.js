@@ -58,20 +58,22 @@ var dialogue = {
 
 //transition dialogue
 
-var tranDialogue = {
+var transitionDialogue = {
     wordsStage: 0,
     textContainer: {},
     text: {},
     sb: {},
+    bg: {},
     image: {},
-    words: [
+    speech: [
         "Hello, my child...",
-        "Pick up the blue flame to collect energy and win an armour and the key to escape.",
-        "Kill the soldiers to get your freedom!"],
+        "Avoid the obstacles..",
+        "Collect flames of blue energy!",
+        "Kill the guards to get to freedom!"],
     lastChanged: {},
     helpWords:{}
 
-}
+};
 var mobiles = {
     obstacles: [],
     guards: [],
@@ -95,6 +97,7 @@ function preload() {
     queue.loadManifest(
         [
             "assets/img/npc.png",
+            "assets/img/midscreen.png",
             {id: "levelJson", src: "assets/json/levels.json"},
             {id: "geometrySprites", src: "assets/json/tiles.json"},
             {id: "playerRagsSS", src: "assets/json/herotatters.json"},
@@ -273,8 +276,7 @@ function setupLevel() {
         spawnGuards();
     }
     // LEVEL 2
-    if (currentLevel == 1)
-    {   staticLevel();
+    if (currentLevel == 1) {
         state.itemsSpawned = false;
         player.hasWeapon = true;
         items.armor.isSpawned = false;
@@ -288,8 +290,7 @@ function setupLevel() {
         }
     }
     // LEVEL 3
-    if (currentLevel == 2)
-    {   staticLevel();
+    if (currentLevel == 2) {
         addEnemies();
         player.hasWeapon = true;
         player.x = 10 * tileSize;
@@ -396,8 +397,23 @@ function movePlayer() {
     if (player.isMoving) {
         handleCollisions();
     }
-    if (player.y < player.height / 2) { // Unlock next level
-        setupLevel(); // create new function transitionScreen and add it instead
+    if (player.y < player.height) {
+
+        if (!player.dialogueStarted && !state.gamePaused)
+        {
+            player.dialogueStarted = true;
+            state.gamePaused = true;
+            player.gotoAndStop("idle");
+            if (currentLevel == 1) {
+                transitionDialogue.wordsStage = 3;
+            }
+            startTransitionText();
+        } else {
+            if (currentLevel == 1) {
+                transitionDialogue.wordsStage = 3;
+            }
+            updateTransitionText();
+        }
     }
     if (keys.enter && state.gameOver) {
         currentLevel = -1;
@@ -604,6 +620,7 @@ function updateDialogue(){
                     HUD.key.gotoAndPlay('key');
                     state.gamePaused = false;
                     player.hasKey = true;
+                    player.dialogueStarted = false;
                 }
                 break;
         }
@@ -611,76 +628,6 @@ function updateDialogue(){
         dialogue.text.x = dialogue.sb.x + 8;
         dialogue.text.y = dialogue.sb.y + 8;
         dialogue.textContainer.addChild(dialogue.text);
-
-    }
-}
-
-//transition text
-function transitionText (){
-    tranDialogue.wordsStage = 0;
-    tranDialogue.textContainer = new createjs.Container();
-    tranDialogue.text = new createjs.Text(tranDialogue.words[0], "15px Arial", "#000000");
-    tranDialogue.image = new Image();
-    tranDialogue.image.onload = function() { stage.update(); };
-    tranDialogue.image.src = "assets/img/bubble.png";
-    tranDialogue.sb = new createjs.ScaleBitmap(tranDialogue.image, new createjs.Rectangle(8, 12, 10, 5));
-    tranDialogue.sb.width = 200;
-    tranDialogue.sb.height = 50;
-    tranDialogue.sb.setDrawSize(tranDialogue.sb.width, tranDialogue.sb.height);
-    tranDialogue.sb.x = 13 * tileSize;
-    tranDialogue.sb.y = tileSize;
-    tranDialogue.text.textAlign = "start";
-    tranDialogue.text.x = tranDialogue.sb.x + 8;
-    tranDialogue.text.y = tranDialogue.sb.y + 8;
-    tranDialogue.textContainer.addChild(tranDialogue.sb, tranDialogue.text);
-    stage.addChild(tranDialogue.textContainer);
-    //instructions
-    tranDialogue.helpWords = new createjs.Text("Press [enter] to read the wise man's words.", "20px Arial Black", "#ffffff");
-    tranDialogue.helpWords.textAlign = "center";
-    tranDialogue.helpWords.x = stage.canvas.width / 2;
-    tranDialogue.helpWords.y = stage.canvas.height - 100;
-    stage.addChild(tranDialogue.helpWords);
-
-}
-
-//update transition dialogue
-function runTransition() {
-    if (keys.enter) {
-        stage.removeChild(tranDialogue.helpWords);
-        tranDialogue.textContainer.removeChild(tranDialogue.text);
-
-        switch (tranDialogue.wordsStage) {
-            case 0:
-                tranDialogue.text = new createjs.Text(tranDialogue.words[0], "15px Arial", "#000000");
-                tranDialogue.lastChanged = new Date();
-                tranDialogue.speechStage++;
-                break;
-            case 1:
-                var elapsed = new Date() - tranDialogue.lastChanged;
-                if (elapsed > 500) {
-                    tranDialogue.text = new createjs.Text(tranDialogue.speech[1], "15px Arial", "#000000");
-                    tranDialogue.speechStage++;
-                    tranDialogue.lastChanged = new Date();
-                    stage.removeChild(tranDialogue.textContainer);
-                    stage.removeChild(tranDialogue.words);
-                    stage.removeChild(tranDialogue.image);
-                }
-                break;
-            case 2:
-                elapsed = new Date() - tranDialogue.lastChanged;
-                if (elapsed > 500 && level === 2) {
-                    tranDialogue.text = new createjs.Text(tranDialogue.speech[1], "15px Arial", "#000000");
-                    state.gamePaused = false;
-                    stage.removeChild(tranDialogue.textContainer);
-                    stage.removeChild(tranDialogue.words);
-                    stage.removeChild(tranDialogue.image);
-                }
-                break;
-        }
-        tranDialogue.text.textAlign = "start";
-        tranDialogue.text.x = tranDialogue.sb.x + 8;
-        tranDialogue.text.y = tranDialogue.sb.y + 8;
-        tranDialogue.textContainer.addChild(tranDialogue.text);
 
     }
 }
@@ -869,17 +816,6 @@ function handleCollisions(){
 /* =========================================================
  LEVEL 2
  ==========================================================*/
-
-function staticLevel(){
-    if (!state.gamePaused){
-        state.gamePaused = true;
-        transitionText();
-        }
-    else {
-        runTransition();
-    }
-}
-
 function addEnemiesSecond(){
     if (!state.levelComplete) {
         var enemiesSecond = new createjs.SpriteSheet(queue.getResult("enemiesSecond"));
@@ -1039,13 +975,6 @@ function endLevelTwo() {
  ==========================================================*/
 /*enemies appear*/
 function addEnemies() {
-    if ( currentLevel==2){
-        state.gamePaused = true;
-        player.gotoAndStop("idle");
-        transitionText();
-    } else {
-        runTransition();
-    }
     var enemySS = new createjs.SpriteSheet(queue.getResult("guardSS"));
     for(var i=0; i < settings.enemyCount; i++){
         var enemy = new createjs.Sprite(enemySS, "idle");
@@ -1177,6 +1106,92 @@ function weaponsMoving(){
     }
 }
 
+//transition text
+function startTransitionText(){
+    if (state.gamePaused){
+        stage.canvas.style.backgroundColor = "black";
+        transitionDialogue.bg = new createjs.Bitmap("assets/img/midscreen.png");
+        stage.addChild(transitionDialogue.bg);
+
+        transitionDialogue.wordsStage = 0;
+        transitionDialogue.textContainer = new createjs.Container();
+        if (currentLevel == 0)
+        {
+            transitionDialogue.text = new createjs.Text(transitionDialogue.speech[0], "15px Arial", "#000000");
+        } else {
+            transitionDialogue.text = new createjs.Text(transitionDialogue.speech[3], "15px Arial", "#000000");
+        }
+        transitionDialogue.image = new Image();
+        transitionDialogue.image.onload = function() { stage.update(); };
+        transitionDialogue.image.src = "assets/img/bubble.png";
+        transitionDialogue.sb = new createjs.ScaleBitmap(transitionDialogue.image, new createjs.Rectangle(8, 12, 10, 5));
+        transitionDialogue.sb.width = 250;
+        transitionDialogue.sb.height = 50;
+        transitionDialogue.sb.setDrawSize(transitionDialogue.sb.width, transitionDialogue.sb.height);
+        transitionDialogue.sb.x = 11 * tileSize;
+        transitionDialogue.sb.y = tileSize;
+        transitionDialogue.text.textAlign = "start";
+        transitionDialogue.text.x = transitionDialogue.sb.x + 8;
+        transitionDialogue.text.y = transitionDialogue.sb.y + 8;
+        transitionDialogue.textContainer.addChild(transitionDialogue.sb, transitionDialogue.text);
+        stage.addChild(transitionDialogue.textContainer);
+        //instructions
+        transitionDialogue.helpWords = new createjs.Text("Press [enter] to hear the wise man's words.", "20px Arial Black", "#ffffff");
+        transitionDialogue.helpWords.textAlign = "center";
+        transitionDialogue.helpWords.x = stage.canvas.width / 2;
+        transitionDialogue.helpWords.y = stage.canvas.height - 100;
+        stage.addChild(transitionDialogue.helpWords);
+    }
+}
+
+//update transition dialogue
+function updateTransitionText() {
+    if (keys.enter && state.gamePaused) {
+        stage.removeChild(transitionDialogue.helpWords);
+        transitionDialogue.textContainer.removeChild(transitionDialogue.text);
+
+        switch (transitionDialogue.wordsStage) {
+            case 0:
+                transitionDialogue.text = new createjs.Text(transitionDialogue.speech[1], "15px Arial", "#000000");
+                transitionDialogue.lastChanged = new Date();
+                transitionDialogue.wordsStage++;
+                break;
+            case 1:
+                var elapsed = new Date() - transitionDialogue.lastChanged;
+                if (elapsed > 500) {
+                    transitionDialogue.text = new createjs.Text(transitionDialogue.speech[2], "15px Arial", "#000000");
+                    transitionDialogue.wordsStage++;
+                    transitionDialogue.lastChanged = new Date();
+                }
+                break;
+            case 2:
+                elapsed = new Date() - transitionDialogue.lastChanged;
+                if (elapsed > 500) {
+                    stage.removeChild(transitionDialogue.textContainer, transitionDialogue.bg, transitionDialogue.helpWords);
+                    transitionDialogue.lastChanged = new Date();
+                    state.gamePaused = false;
+                    setupLevel();
+                }
+                break;
+            case 3:
+                elapsed = new Date() - transitionDialogue.lastChanged;
+                if (elapsed > 500) {
+                    stage.removeChild(transitionDialogue.textContainer, transitionDialogue.bg, transitionDialogue.helpWords);
+                    transitionDialogue.lastChanged = new Date();
+                    state.gamePaused = false;
+                    setupLevel();
+                }
+                break;
+        }
+
+        transitionDialogue.text.textAlign = "start";
+        transitionDialogue.text.x = transitionDialogue.sb.x + 8;
+        transitionDialogue.text.y = transitionDialogue.sb.y + 8;
+        transitionDialogue.textContainer.addChild(transitionDialogue.text);
+
+    }
+}
+
 function gameOver() {
     stage.removeAllChildren();
     mobiles.guards = [];
@@ -1200,8 +1215,6 @@ function gameOver() {
     gameOverContainer.height = 675;
     gameOverContainer.addChild(bg, gameOverText, restartText);
     stage.addChild(gameOverContainer);
-
-
-
 }
+
 window.addEventListener('load', preload);
