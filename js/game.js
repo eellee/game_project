@@ -109,10 +109,12 @@ function preload() {
             {id: "energySS", src: "assets/json/energy.json"},
             {id: "weaponSS", src: "assets/json/weapon.json"},
             {id: "chestSS", src: "assets/json/chest.json"},
+            {id: "youWin", src: "assets/json/forest.json"},
+            {id: "bgForest", src: "assets/json/forest.json"},
             {id: "keyPickup", src: "assets/audio/wildweasel_keypickup.wav"}, //Freesound.org
             {id: "bgMusic", src: "assets/audio/8bit_Dungeon_Level_Video_Classica.mp3"}, //Youtube audio library
             {id: "touch", src:"assets/audio/touchEnemy.wav"},
-            {id: "hit", src:"assets/audio/enemyHit.wav"},
+            {id: "hit", src:"assets/audio/enemyHit.wav"}
             {id: "playerHit", src:"assets/audio/foomph08.wav"}
         ]
     );
@@ -820,6 +822,22 @@ function handleCollisions(){
             player.hasKey = false;
         }
     }
+
+    if (currentLevel == 2) {
+        if (playerHitTest((grid[2][9]) || grid[2][10])){ // Level two door collision
+            grid[1][9].gotoAndPlay('wholeFloor');
+            grid[1][9].tileNumber = 5;
+            grid[0][9].gotoAndPlay('wholeFloor');
+            grid[0][9].tileNumber = 5;
+            grid[0][10].gotoAndPlay('brokenFloor');
+            grid[0][10].tileNumber = 7;
+            grid[1][10].gotoAndPlay('wholeFloor');
+            grid[1][10].tileNumber = 5;
+
+            HUD.key.gotoAndPlay('emptyKey');
+            player.hasKey = false;
+        }
+    }
 }
 /* =========================================================
                         LEVEL TRANSITIONS
@@ -1180,6 +1198,25 @@ function defend() {
     stage.addChild(weapon);
     items.discs.push(weapon);
 
+    var bg = new createjs.Shape();
+    bg.graphics.beginFill("black");
+    bg.graphics.drawRect(0, 0, 900, 630);
+    var gameOverText = new createjs.Text("Game Over", "20px Arial Black", "#ffffff");
+    var restartText = new createjs.Text("Press [enter] to continue.", "16px Arial Black", "#ffffff");
+    var gameOverContainer = new createjs.Container();
+    gameOverText.textAlign = "center";
+    gameOverText.x = stage.canvas.width / 2;
+    gameOverText.y = stage.canvas.width / 4;
+    restartText.textAlign = "center";
+    restartText.x = stage.canvas.width / 2;
+    restartText.y = stage.canvas.width / 3;
+    gameOverContainer.width = 900;
+    gameOverContainer.height = 675;
+    gameOverContainer.addChild(bg, gameOverText, restartText);
+    stage.addChild(gameOverContainer);
+
+
+
 }
 function weaponsMoving(){
     for (var i = items.discs.length - 1; i  >= 0; i--){
@@ -1227,6 +1264,45 @@ function gameOver() {
     gameOverContainer.height = 675;
     gameOverContainer.addChild(bg, gameOverText, restartText);
     stage.addChild(gameOverContainer);
-}
+function youWin() {
+    stage.removeAllChildren();
+    mobiles.guards = [];
+    mobiles.soldiers = [];
+    state.tweenComplete = false;
+    state.gameOver = false;
+    state.youWin = true;
 
+
+
+    var youWinContainer = new createjs.Container();
+    youWinContainer.width = 900;
+    youWinContainer.height = 675;
+    stage.canvas.style.backgroundColor = "#94DAF0";
+
+    var bgYouWin = new createjs.Shape();
+    bgYouWin.graphics.beginFill("green"). drawRect(0, 0, 900, 325);
+    bgYouWin.x = 0;
+    bgYouWin.y = 310;
+
+    var bgForest = new createjs.SpriteSheet(queue.getResult("bgForest"));
+    var forest = new createjs.Sprite(bgForest, "forest");
+    forest.x = stage.canvas.width / 2;
+    forest.regX = 355;
+    forest.y = stage.canvas.height / 2;
+    forest.regY = 170;
+
+    var youWinText = new createjs.Text("You are free my child!", "20px Arial Black", "#ffffff");
+    youWinText.textAlign = "center";
+    youWinText.x = stage.canvas.width / 2;
+    youWinText.y = stage.canvas.width / 4;
+
+    var playerwins = new createjs.SpriteSheet(queue.getResult("playerRagsSS"));
+    var player = new createjs.Sprite(playerwins, "up");
+    player.x = 420;
+    player.y = 450;
+
+    youWinContainer.addChild(bgYouWin, forest, youWinText, player);
+    stage.addChild(youWinContainer);
+
+}
 window.addEventListener('load', preload);
