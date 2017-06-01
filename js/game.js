@@ -9,7 +9,7 @@ var keys = {
     space: false
 };
 var state = {
-    gameStarted: false,
+    gameRunning: false,
     levelComplete: false,
     lastInjured: new Date(),
     gamePaused: false,
@@ -124,9 +124,9 @@ function showSplash() {
     stage.addChild(splash);
 }
 function waitForState() {
-    if (keys.enter && !state.gameStarted) {
+    if (keys.enter && !state.gameRunning) {
         currentLevel = -1;
-        state.gameStarted = true;
+        state.gameRunning = true;
         setupLevel();
     }
 }
@@ -301,7 +301,7 @@ function setupLevel() {
 
 }
 function updateScene(e) {
-    if (state.gameStarted)
+    if (state.gameRunning)
     {
         movePlayer();
 
@@ -331,7 +331,7 @@ function updateScene(e) {
 }
 
 function keyLifted(e) {
-    if (state.gameStarted) {
+    if (state.gameRunning) {
         player.isMoving = false;
         player.gotoAndStop('idle');
     }
@@ -362,7 +362,7 @@ function keyLifted(e) {
 }
 
 function keyPressed(e) {
-    if (state.gameStarted) {
+    if (state.gameRunning) {
         player.isMoving = true;
     }
     switch (e.keyCode) {
