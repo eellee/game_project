@@ -1,5 +1,5 @@
 var stage, queue, player, grid = [], level, HUDContainer;
-var levels = [], currentLevel =-1, tileSize = 45, currentAnimation = "idle";
+var levels = [], currentLevel =-1, tileSize = 45;
 var keys = {
     left: false,
     right: false,
@@ -9,6 +9,7 @@ var keys = {
     space: false
 };
 var state = {
+    gameStarted: false,
     levelComplete: false,
     lastInjured: new Date(),
     gamePaused: false,
@@ -77,6 +78,7 @@ function preload() {
 
     queue.loadManifest(
         [
+            "assets/img/bgsplash.png",
             "assets/img/npc.png",
             {id: "levelJson", src: "assets/json/levels.json"},
             {id: "geometrySprites", src: "assets/json/tiles.json"},
@@ -90,7 +92,8 @@ function preload() {
             {id: "keyPickup", src: "assets/audio/wildweasel_keypickup.wav"}, //Freesound.org
             {id: "bgMusic", src: "assets/audio/8bit_Dungeon_Level_Video_Classica.mp3"}, //Youtube audio library
             {id: "touch", src:"assets/audio/touchEnemy.wav"},
-            {id: "hit", src:"assets/audio/enemyHit.wav"}
+            {id: "hit", src:"assets/audio/enemyHit.wav"},
+            {id: "playerHit", src:"assets/audio/foomph08.wav"}
         ]
     );
 }
@@ -110,7 +113,22 @@ function queueComplete() {
     createjs.Ticker.setFPS(60);
     createjs.Ticker.on('tick', updateScene);
 
-    setupLevel();
+    showSplash();
+}
+function showSplash() {
+    stage.removeAllChildren();
+    window.addEventListener('keyup', keyLifted);
+    window.addEventListener('keydown', keyPressed);
+
+    var splash = new createjs.Bitmap("assets/img/bgsplash.png");
+    stage.addChild(splash);
+}
+function waitForState() {
+    if (keys.enter && !state.gameStarted) {
+        currentLevel = -1;
+        state.gameStarted = true;
+        setupLevel();
+    }
 }
 function setupLevel() {
     stage.removeAllChildren();
@@ -120,9 +138,6 @@ function setupLevel() {
 
     level = levels[currentLevel].tiles;
     grid = [];
-
-    window.addEventListener('keyup', keyLifted);
-    window.addEventListener('keydown', keyPressed);
 
     for (var i = 0; i < level.length; i++) {
         grid.push([]);
@@ -286,34 +301,40 @@ function setupLevel() {
 
 }
 function updateScene(e) {
-    movePlayer();
+    if (state.gameStarted)
+    {
+        movePlayer();
 
-    // LEVEL 1
-    if (currentLevel == 0)
-    {
-        moveGuards();
+        // LEVEL 1
+        if (currentLevel == 0)
+        {
+            moveGuards();
+        }
+        // LEVEL 2
+        if (currentLevel == 1)
+        {
+            player.hasWeapon = true;
+            moveEnemiesSecond();
+            moveEnergy();
+            handleLevelTwoHits();
+        }
+        // LEVEL 3
+        if (currentLevel == 2)
+        {
+            moveEnemies();
+            levelThreeHitTest();
+            weaponsMoving();
+        }
     }
-    // LEVEL 2
-    if (currentLevel == 1)
-    {
-        player.hasWeapon = true;
-        moveEnemiesSecond();
-        moveEnergy();
-        handleLevelTwoHits();
-    }
-    // LEVEL 3
-    if (currentLevel == 2)
-    {
-        moveEnemies();
-        levelThreeHitTest();
-        weaponsMoving();
-    }
+    waitForState();
     stage.update(e)
 }
 
 function keyLifted(e) {
-    player.isMoving = false;
-    player.gotoAndStop('idle');
+    if (state.gameStarted) {
+        player.isMoving = false;
+        player.gotoAndStop('idle');
+    }
     switch (e.keyCode) {
         case 13:
             keys.enter = false;
@@ -341,7 +362,9 @@ function keyLifted(e) {
 }
 
 function keyPressed(e) {
-    player.isMoving = true;
+    if (state.gameStarted) {
+        player.isMoving = true;
+    }
     switch (e.keyCode) {
         case 13:
             keys.enter = true;
@@ -709,27 +732,13 @@ function handleCollisions(){
 
                 if (elapsed > 1000){
                     settings.lives--;
+                    createjs.Sound.play("playerHit");
                     state.lastInjured = new Date();
                     HUDContainer.removeChild(HUD.hearts[settings.lives]);
 
                     if (settings.lives <= 0 && player.isAlive) {
                         player.isAlive = false;
                         gameOver();
-                    } else {
-                        switch (player.currentAnimation) {
-                            case "right":
-                                player.gotoAndPlay('rightHit');
-                                break;
-                            case "left":
-                                player.gotoAndPlay('leftHit');
-                                break;
-                            case "up":
-                                player.gotoAndPlay('upHit');
-                                break;
-                            case "down":
-                                player.gotoAndPlay('downHit');
-                                break;
-                        }
                     }
                 }
             }
@@ -840,6 +849,7 @@ function handleLevelTwoHits() {
         for (var i = mobiles.obstacles.length-1; i >= 0; i--) {
             if (playerHitTest(mobiles.obstacles[i])) {
                 settings.lives--;
+                createjs.Sound.play("playerHit");
                 HUDContainer.removeChild(HUD.hearts[settings.lives]);
 
                 if (settings.lives <= 0 && player.isAlive) {
@@ -1013,6 +1023,7 @@ function levelThreeHitTest() {
                 mobiles.soldiers.splice(i, 1);
                 createjs.Sound.play("touch");
                 settings.lives--;
+                createjs.Sound.play("playerHit");
                 HUDContainer.removeChild(HUD.hearts[settings.lives]);
 
                 if (settings.lives <= 0 && player.isAlive) {
@@ -1095,8 +1106,5 @@ function gameOver() {
     gameOverContainer.height = 675;
     gameOverContainer.addChild(bg, gameOverText, restartText);
     stage.addChild(gameOverContainer);
-
-
-
 }
 window.addEventListener('load', preload);
