@@ -1,5 +1,5 @@
-var stage, queue, player, grid = [], level, HUDContainer, guards=[], soldiers=[], discs=[], enemies=[], energySprite;
-var levels = [], currentLevel =-1, tileSize = 45, currentAnimation = "idle", followPlayer=false;
+var stage, queue, player, grid = [], level, HUDContainer;
+var levels = [], currentLevel =-1, tileSize = 45, currentAnimation = "idle";
 var keys = {
     left: false,
     right: false,
@@ -7,6 +7,14 @@ var keys = {
     down: false,
     enter: false,
     space: false
+};
+var state = {
+    levelComplete: false,
+    lastInjured: new Date(),
+    gamePaused: false,
+    lastEnergy: Date.now(),
+    gameOver: false,
+    tweenComplete: false
 };
 var settings = {
     playerSpeed: 2,
@@ -23,7 +31,6 @@ var HUD = {
     weapon: {},
     hearts: {},
     heartOutlines: {},
-    energy: {},
     energyOutlines: {}
 };
 var items = {
@@ -31,7 +38,8 @@ var items = {
     npc: {},
     chest: {},
     weapon: {},
-    armor: {}
+    armor: {},
+    discs: []
 };
 var dialogue = {
     speechStage: 0,
@@ -47,13 +55,11 @@ var dialogue = {
     instructions: {}
 
 };
-var state = {
-    levelComplete: false,
-    lastInjured: new Date(),
-    gamePaused: false,
-    lastEnergy: Date.now(),
-    gameOver: false,
-    tweenComplete: false
+var mobiles = {
+    obstacles: [],
+    guards: [],
+    soldiers: [],
+    energySprite: {}
 };
 var guardInit = [
     [6, 10, "right", 6, 14],
@@ -62,9 +68,11 @@ var guardInit = [
 ];
 function preload() {
     stage = new createjs.Stage("myCanvas");
-
+    preloadText = new createjs.Text("", "50px Arial Black", "#000");
+    stage.addChild(preloadText);
     queue = new createjs.LoadQueue(true);
     queue.installPlugin(createjs.Sound);
+    queue.on('progress', queueProgress);
     queue.on('complete', queueComplete);
 
     queue.loadManifest(
@@ -86,11 +94,18 @@ function preload() {
         ]
     );
 }
+function queueProgress(e){
+    preloadText.text= Math.round(e.progress*100)+"%";
+    preloadText.textAlign = "center";
+    preloadText.y = stage.canvas.height / 2;
+    preloadText.x = stage.canvas.width / 2;
+    stage.update();
+}
 function queueComplete() {
     var lvl = queue.getResult("levelJson");
     levels = lvl.levels;
     var bgMusic = createjs.Sound.play("bgMusic");
-    bgMusic.volume = 0.3;
+    bgMusic.volume = 0.2;
 
     createjs.Ticker.setFPS(60);
     createjs.Ticker.on('tick', updateScene);
@@ -503,7 +518,7 @@ function createHUD() {
     }
 
     for (var l = 0; l < 3; l++) {
-        energySS = new createjs.SpriteSheet(queue.getResult("energySS"));
+        var energySS = new createjs.SpriteSheet(queue.getResult("energySS"));
         var energyOutlines = new createjs.Sprite(energySS, "emptyEnergy");
         energyOutlines.width = 45;
         energyOutlines.x = stage.canvas.width - energyOutlines.width * l - 80;
@@ -622,25 +637,25 @@ function spawnGuards() {
         guard.maxX = guardInit[i][4];
         guard.gotoAndPlay(guardInit[i][2]);
         stage.addChild(guard);
-        guards.push(guard);
+        mobiles.guards.push(guard);
     }
 }
 function moveGuards(){
-    for (var i = guards.length - 1; i >= 0; i--){
-        if ((guards[i].x < guards[i].minX * tileSize && guards[i].direction == "left")
-            || (guards[i].x > guards[i].maxX * tileSize && guards[i].direction == "right")) {
-            if (guards[i].x < guards[i].minX * tileSize) {
-                guards[i].direction = "right";
-                guards[i].gotoAndPlay("right");
+    for (var i = mobiles.guards.length - 1; i >= 0; i--){
+        if ((mobiles.guards[i].x < mobiles.guards[i].minX * tileSize && mobiles.guards[i].direction == "left")
+            || (mobiles.guards[i].x > mobiles.guards[i].maxX * tileSize && mobiles.guards[i].direction == "right")) {
+            if (mobiles.guards[i].x < mobiles.guards[i].minX * tileSize) {
+                mobiles.guards[i].direction = "right";
+                mobiles.guards[i].gotoAndPlay("right");
             } else {
-                guards[i].direction = "left";
-                guards[i].gotoAndPlay("left");
+                mobiles.guards[i].direction = "left";
+                mobiles.guards[i].gotoAndPlay("left");
             }
         } else {
-            if (guards[i].direction == "left") {
-                guards[i].x--;
+            if (mobiles.guards[i].direction == "left") {
+                mobiles.guards[i].x--;
             } else {
-                guards[i].x++;
+                mobiles.guards[i].x++;
             }
         }
     }
@@ -685,9 +700,9 @@ function handleCollisions(){
             HUD.key.gotoAndPlay('emptyKey');
             player.hasKey = false;
         }
-        for (var i = 0; i < guards.length; i++)     // Guards collision
+        for (var i = 0; i < mobiles.guards.length; i++)     // Guards collision
         {
-            var guardPosX = Math.floor(guards[i].x / tileSize);
+            var guardPosX = Math.floor(mobiles.guards[i].x / tileSize);
 
             if(playerHitTest(grid[guardInit[i][1]][guardPosX])){
                 var elapsed = new Date() - state.lastInjured;
@@ -785,45 +800,45 @@ function addEnemiesSecond(){
             enemySecond.x = Math.floor(Math.random() * 900);
             enemyThird.x = Math.floor(Math.random() * 900);
             stage.addChild(enemyOne);
-            enemies.push(enemyOne);
+            mobiles.obstacles.push(enemyOne);
             stage.addChild(enemySecond);
-            enemies.push(enemySecond);
+            mobiles.obstacles.push(enemySecond);
             stage.addChild(enemyThird);
-            enemies.push(enemyThird);
+            mobiles.obstacles.push(enemyThird);
         }
     }
 }
 
 function moveEnemiesSecond() {
-    for (var i = enemies.length - 1; i >= 0; i--) {
-        enemies[i].y += settings.enemySpeed * 10;
-        if (enemies[i].y > stage.canvas.height) {
-            enemies[i].y = Math.floor(Math.random() * 200);
-            enemies[i].x = Math.floor(Math.random() * 900);
+    for (var i = mobiles.obstacles.length - 1; i >= 0; i--) {
+        mobiles.obstacles[i].y += settings.enemySpeed * 10;
+        if (mobiles.obstacles[i].y > stage.canvas.height) {
+            mobiles.obstacles[i].y = Math.floor(Math.random() * 200);
+            mobiles.obstacles[i].x = Math.floor(Math.random() * 900);
         }
     }
 }
 function addEnergy() {
     var enemiesSecond = new createjs.SpriteSheet(queue.getResult("enemiesSecond"));
-    energySprite = new createjs.Sprite(enemiesSecond, "energySM");
-    energySprite.height = 45;
-    energySprite.width = 45;
-    energySprite.regY = 45;
-    energySprite.x = Math.floor(Math.random()*900);
-    energySprite.y = Math.floor(Math.random()*200);
-    stage.addChild(energySprite);
+    mobiles.energySprite = new createjs.Sprite(enemiesSecond, "energySM");
+    mobiles.energySprite.height = 45;
+    mobiles.energySprite.width = 45;
+    mobiles.energySprite.regY = 45;
+    mobiles.energySprite.x = Math.floor(Math.random()*900);
+    mobiles.energySprite.y = Math.floor(Math.random()*200);
+    stage.addChild(mobiles.energySprite);
 }
 function moveEnergy() {
-    energySprite.y += settings.energySpeed;
-    if (energySprite.y > stage.canvas.height) {
-        energySprite.y = Math.floor(Math.random() * 200);
-        energySprite.x = Math.floor(Math.random() * 900);
+    mobiles.energySprite.y += settings.energySpeed;
+    if (mobiles.energySprite.y > stage.canvas.height) {
+        mobiles.energySprite.y = Math.floor(Math.random() * 200);
+        mobiles.energySprite.x = Math.floor(Math.random() * 900);
     }
 }
 function handleLevelTwoHits() {
     if (!state.levelComplete){
-        for (var i = enemies.length-1; i >= 0; i--) {
-            if (playerHitTest(enemies[i])) {
+        for (var i = mobiles.obstacles.length-1; i >= 0; i--) {
+            if (playerHitTest(mobiles.obstacles[i])) {
                 settings.lives--;
                 HUDContainer.removeChild(HUD.hearts[settings.lives]);
 
@@ -831,14 +846,14 @@ function handleLevelTwoHits() {
                     player.isAlive = false;
                     gameOver();
                 }
-                stage.removeChild(enemies[i]);
-                enemies.splice(i,1);
+                stage.removeChild(mobiles.obstacles[i]);
+                mobiles.obstacles.splice(i,1);
             }
         }
-        if (playerHitTest(energySprite)) {                    // Energy hit test
+        if (playerHitTest(mobiles.energySprite)) {                    // Energy hit test
             if (Date.now() - state.lastEnergy > 500) {
                 settings.energy++;
-                stage.removeChild(energySprite);
+                stage.removeChild(mobiles.energySprite);
                 addEnergy();
                 for (var j = 0; j < settings.energy; j++) {
                     HUD.energyOutlines[j].gotoAndPlay('energy');
@@ -879,10 +894,10 @@ function handleLevelTwoHits() {
     }
 }
 function levelTwoReward() {
-    for (var i = enemies.length - 1; i >= 0; i--) {
-        stage.removeChild(enemies[i])
+    for (var i = mobiles.obstacles.length - 1; i >= 0; i--) {
+        stage.removeChild(mobiles.obstacles[i])
     }
-    stage.removeChild(energySprite);
+    stage.removeChild(mobiles.energySprite);
     state.levelComplete = true;
 
     var chestSS = new createjs.SpriteSheet(queue.getResult("chestSS"));
@@ -936,45 +951,45 @@ function addEnemies() {
         enemy.regY = 45;
         settings.soldierLastMoved.push(Date.now());
         stage.addChild(enemy);
-        soldiers.push(enemy);
+        mobiles.soldiers.push(enemy);
 
     }
 }
 /*enemies move*/
 function moveEnemies() {
-    for (var i = soldiers.length - 1; i >= 0; i--) {
-        var leftness = Math.floor(soldiers[i].x - player.x);
-        var rightness = Math.floor(player.x - soldiers[i].x);
-        var aboveness = Math.floor(soldiers[i].y - player.y);
-        var belowness = Math.floor(player.y - soldiers[i].y);
+    for (var i = mobiles.soldiers.length - 1; i >= 0; i--) {
+        var leftness = Math.floor(mobiles.soldiers[i].x - player.x);
+        var rightness = Math.floor(player.x - mobiles.soldiers[i].x);
+        var aboveness = Math.floor(mobiles.soldiers[i].y - player.y);
+        var belowness = Math.floor(player.y - mobiles.soldiers[i].y);
         var biggest = Math.max(leftness, rightness, aboveness, belowness);
 
         if (rightness == biggest){
-            soldiers[i].x+=settings.enemySpeed;
-            if (soldiers[i].currentAnimation != "right") {
-                soldiers[i].gotoAndPlay('right');
-                soldiers[i].currentAnimation = "right";
+            mobiles.soldiers[i].x+=settings.enemySpeed;
+            if (mobiles.soldiers[i].currentAnimation != "right") {
+                mobiles.soldiers[i].gotoAndPlay('right');
+                mobiles.soldiers[i].currentAnimation = "right";
             }
         }
         if (leftness == biggest){
-            soldiers[i].x-=settings.enemySpeed;
-            if (soldiers[i].currentAnimation != "left") {
-                soldiers[i].gotoAndPlay('left');
-                soldiers[i].currentAnimation = "left";
+            mobiles.soldiers[i].x-=settings.enemySpeed;
+            if (mobiles.soldiers[i].currentAnimation != "left") {
+                mobiles.soldiers[i].gotoAndPlay('left');
+                mobiles.soldiers[i].currentAnimation = "left";
             }
         }
         if (aboveness == biggest){
-            soldiers[i].y-=settings.enemySpeed;
-            if (soldiers[i].currentAnimation != "up") {
-                soldiers[i].gotoAndPlay('up');
-                soldiers[i].currentAnimation = "up";
+            mobiles.soldiers[i].y-=settings.enemySpeed;
+            if (mobiles.soldiers[i].currentAnimation != "up") {
+                mobiles.soldiers[i].gotoAndPlay('up');
+                mobiles.soldiers[i].currentAnimation = "up";
             }
         }
         if (belowness == biggest){
-            soldiers[i].y+=settings.enemySpeed;
-            if (soldiers[i].currentAnimation != "down") {
-                soldiers[i].gotoAndPlay('down');
-                soldiers[i].currentAnimation = "down";
+            mobiles.soldiers[i].y+=settings.enemySpeed;
+            if (mobiles.soldiers[i].currentAnimation != "down") {
+                mobiles.soldiers[i].gotoAndPlay('down');
+                mobiles.soldiers[i].currentAnimation = "down";
             }
         }
     }
@@ -991,11 +1006,11 @@ function hitTest(rect1,rect2){
 }
 //hittest between xena and enemy
 function levelThreeHitTest() {
-    for (var i = soldiers.length - 1; i >= 0; i--) {
-        if (typeof soldiers[i] != "undefined") {
-            if (hitTest(player, soldiers[i]) == true) {
-                stage.removeChild(soldiers[i]);
-                soldiers.splice(i, 1);
+    for (var i = mobiles.soldiers.length - 1; i >= 0; i--) {
+        if (typeof mobiles.soldiers[i] != "undefined") {
+            if (hitTest(player, mobiles.soldiers[i]) == true) {
+                stage.removeChild(mobiles.soldiers[i]);
+                mobiles.soldiers.splice(i, 1);
                 createjs.Sound.play("touch");
                 settings.lives--;
                 HUDContainer.removeChild(HUD.hearts[settings.lives]);
@@ -1008,14 +1023,14 @@ function levelThreeHitTest() {
         }
     }
     //soldiers and weapons hitTest
-    for (var s = soldiers.length - 1; s >= 0; s--) {
-        for (var w = discs.length - 1; w >= 0; w--) {
-            if (hitTest(soldiers[s], discs[w]) == true) {
+    for (var s = mobiles.soldiers.length - 1; s >= 0; s--) {
+        for (var w = items.discs.length - 1; w >= 0; w--) {
+            if (hitTest(mobiles.soldiers[s], items.discs[w]) == true) {
 
-                stage.removeChild(soldiers[s]);
-                soldiers.splice(s, 1);
-                stage.removeChild(discs[w]);
-                discs.splice(w, 1);
+                stage.removeChild(mobiles.soldiers[s]);
+                mobiles.soldiers.splice(s, 1);
+                stage.removeChild(items.discs[w]);
+                items.discs.splice(w, 1);
                 createjs.Sound.play("hit");
             }
         }
@@ -1031,36 +1046,36 @@ function defend() {
     weapon.height = 45;
     weapon.direction = player.currentDirection;
     stage.addChild(weapon);
-    discs.push(weapon);
+    items.discs.push(weapon);
 
 }
 function weaponsMoving(){
-    for (var i = discs.length - 1; i  >= 0; i--){
-        if (discs[i].direction == "up") {
-            discs[i].y-=settings.discSpeed;
+    for (var i = items.discs.length - 1; i  >= 0; i--){
+        if (items.discs[i].direction == "up") {
+            items.discs[i].y-=settings.discSpeed;
         }
-        if (discs[i].direction == "down") {
-            discs[i].y+=settings.discSpeed;
+        if (items.discs[i].direction == "down") {
+            items.discs[i].y+=settings.discSpeed;
         }
-        if (discs[i].direction == "left"){
-            discs[i].x-=settings.discSpeed;
+        if (items.discs[i].direction == "left"){
+            items.discs[i].x-=settings.discSpeed;
         }
-        if (discs[i].direction == "right") {
-            discs[i].x+=settings.discSpeed;
+        if (items.discs[i].direction == "right") {
+            items.discs[i].x+=settings.discSpeed;
         }
-        if (discs[i].x > stage.canvas.width || discs[i].x < 0) {
-            stage.removeChild(discs[i]);
+        if (items.discs[i].x > stage.canvas.width || items.discs[i].x < 0) {
+            stage.removeChild(items.discs[i]);
         }
-        if (discs[i].y > stage.canvas.height || discs[i].y < 0) {
-            stage.removeChild(discs[i]);
+        if (items.discs[i].y > stage.canvas.height || items.discs[i].y < 0) {
+            stage.removeChild(items.discs[i]);
         }
     }
 }
 
 function gameOver() {
     stage.removeAllChildren();
-    guards = [];
-    soldiers = [];
+    mobiles.guards = [];
+    mobiles.soldiers = [];
     state.tweenComplete = false;
     state.gameOver = true;
 
