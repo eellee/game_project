@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 {
 
 "images": [
@@ -23,3 +24,30 @@
 ]
 
 }
+=======
+{
+
+"images": [
+    "assets/img/chest.png"
+],
+
+"frames": [
+    [0, 0, 45, 45, 0, 0, 0],
+    [45, 0, 45, 45, 0, 0, 0],
+    [0, 45, 45, 45, 0, 0, 0],
+    [45, 45, 45, 45, 0, 0, 0]
+],
+  "framerate": 4,
+
+"animations": {
+    "chestClosed": { "frames": [2] },
+    "chestOpen": { "frames": [0,2,1,3] }
+},
+
+"texturepacker": [
+        "SmartUpdateHash: $TexturePacker:SmartUpdate:73f87cccaa304254ce0be4caa9575430:7c9be7a5c9835f7ac25e4c042b7d2021:d0951faa14b608797f96616a345e52d5$",
+        "Created with TexturePacker (https://www.codeandweb.com/texturepacker) for EaselJS"
+]
+
+}
+>>>>>>> larisa.gameBranch
