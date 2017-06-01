@@ -22,7 +22,7 @@ var settings = {
     discSpeed: 3,
     lives: 3,
     enemySpeed: 0.2,
-    enemyCount: 20,
+    enemyCount: 10,
     soldierLastMoved: [],
     energy: 0,
     energySpeed: 2
@@ -114,7 +114,7 @@ function preload() {
             {id: "keyPickup", src: "assets/audio/wildweasel_keypickup.wav"}, //Freesound.org
             {id: "bgMusic", src: "assets/audio/8bit_Dungeon_Level_Video_Classica.mp3"}, //Youtube audio library
             {id: "touch", src:"assets/audio/touchEnemy.wav"},
-            {id: "hit", src:"assets/audio/enemyHit.wav"}
+            {id: "hit", src:"assets/audio/enemyHit.wav"},
             {id: "playerHit", src:"assets/audio/foomph08.wav"}
         ]
     );
@@ -310,6 +310,9 @@ function setupLevel() {
     // LEVEL 3
     if (currentLevel == 2) {
         addEnemies();
+        state.itemsSpawned = false;
+        state.rewardsHad = false;
+        state.chestSpawned = false;
         player.hasWeapon = true;
         player.x = 10 * tileSize;
         player.y = 10 * tileSize;
@@ -394,27 +397,39 @@ function keyPressed(e) {
             keys.space = true;
             break;
         case 37:
-            if (!state.gamePaused && player.isAlive)
+            if (!state.gamePaused && state.gameRunning)
             {
-                keys.left = true;
+                if (player.isAlive)
+                {
+                    keys.left = true;
+                }
             }
             break;
         case 38:
-            if (!state.gamePaused && player.isAlive)
+            if (!state.gamePaused && state.gameRunning)
             {
-                keys.up = true;
+                if (player.isAlive)
+                {
+                    keys.up = true;
+                }
             }
             break;
         case 39:
-            if (!state.gamePaused && player.isAlive)
+            if (!state.gamePaused && state.gameRunning)
             {
-                keys.right = true;
+                if (player.isAlive)
+                {
+                    keys.right = true;
+                }
             }
             break;
         case 40:
-            if (!state.gamePaused && player.isAlive)
+            if (!state.gamePaused && state.gameRunning)
             {
-                keys.down = true;
+                if (player.isAlive)
+                {
+                    keys.down = true;
+                }
             }
             break;
     }
@@ -424,6 +439,9 @@ function movePlayer() {
         handleCollisions();
     }
     if (player.y < player.height + tileSize) {
+        if (currentLevel == 2) {
+            youWin();
+        }
         if (!player.dialogueStarted && !state.gamePaused)
         {
             player.dialogueStarted = true;
@@ -823,7 +841,7 @@ function handleCollisions(){
         }
     }
 
-    if (currentLevel == 2) {
+    if (currentLevel == 2 && player.hasKey) {
         if (playerHitTest((grid[2][9]) || grid[2][10])){ // Level two door collision
             grid[1][9].gotoAndPlay('wholeFloor');
             grid[1][9].tileNumber = 5;
@@ -1044,7 +1062,8 @@ function handleLevelTwoHits() {
 }
 function levelTwoReward() {
     for (var i = mobiles.obstacles.length - 1; i >= 0; i--) {
-        stage.removeChild(mobiles.obstacles[i])
+        stage.removeChild(mobiles.obstacles[i]);
+        mobiles.obstacles = [];
     }
     stage.removeChild(mobiles.energySprite);
     state.levelComplete = true;
@@ -1171,17 +1190,50 @@ function levelThreeHitTest() {
                 }
             }
         }
+
     }
     //soldiers and weapons hitTest
-    for (var s = mobiles.soldiers.length - 1; s >= 0; s--) {
-        for (var w = items.discs.length - 1; w >= 0; w--) {
-            if (hitTest(mobiles.soldiers[s], items.discs[w]) == true) {
+    var numSoldiers = mobiles.soldiers.length;
 
-                stage.removeChild(mobiles.soldiers[s]);
-                mobiles.soldiers.splice(s, 1);
-                stage.removeChild(items.discs[w]);
-                items.discs.splice(w, 1);
-                createjs.Sound.play("hit");
+    if (numSoldiers == 0){
+        if (!state.rewardsHad)
+        {
+            levelThreeRewards();
+            state.rewardsHad = true;
+        }
+    } else {
+        for (var s = mobiles.soldiers.length - 1; s >= 0; s--) {
+            for (var w = items.discs.length - 1; w >= 0; w--) {
+                if (typeof mobiles.soldiers[s] != "undefined" && typeof items.discs[w] != "undefined") {
+                    if (hitTest(mobiles.soldiers[s], items.discs[w]) == true) {
+                        stage.removeChild(mobiles.soldiers[s]);
+                        mobiles.soldiers.splice(s, 1);
+                        stage.removeChild(items.discs[w]);
+                        items.discs.splice(w, 1);
+                        createjs.Sound.play("hit");
+                    }
+                }
+            }
+        }
+    }
+    if (state.chestSpawned){
+        if (hitTest(items.chest, player)) {
+            items.chest.gotoAndStop("chestOpen");
+            if (!state.itemsSpawned)
+            {
+                endLevelThree();
+                state.itemsSpawned = true;
+            }
+            state.chestSpawned = false;
+        }
+    }
+    if (state.tweenComplete) {
+        if (typeof items.key != "undefined") {
+            if (hitTest(items.key, player) && !player.hasKey) {
+                createjs.Sound.play("keyPickup");
+                stage.removeChild(items.key);
+                player.hasKey = true;
+                HUD.key.gotoAndStop('key');
             }
         }
     }
@@ -1197,26 +1249,6 @@ function defend() {
     weapon.direction = player.currentDirection;
     stage.addChild(weapon);
     items.discs.push(weapon);
-
-    var bg = new createjs.Shape();
-    bg.graphics.beginFill("black");
-    bg.graphics.drawRect(0, 0, 900, 630);
-    var gameOverText = new createjs.Text("Game Over", "20px Arial Black", "#ffffff");
-    var restartText = new createjs.Text("Press [enter] to continue.", "16px Arial Black", "#ffffff");
-    var gameOverContainer = new createjs.Container();
-    gameOverText.textAlign = "center";
-    gameOverText.x = stage.canvas.width / 2;
-    gameOverText.y = stage.canvas.width / 4;
-    restartText.textAlign = "center";
-    restartText.x = stage.canvas.width / 2;
-    restartText.y = stage.canvas.width / 3;
-    gameOverContainer.width = 900;
-    gameOverContainer.height = 675;
-    gameOverContainer.addChild(bg, gameOverText, restartText);
-    stage.addChild(gameOverContainer);
-
-
-
 }
 function weaponsMoving(){
     for (var i = items.discs.length - 1; i  >= 0; i--){
@@ -1240,6 +1272,35 @@ function weaponsMoving(){
         }
     }
 }
+function levelThreeRewards() {
+    state.chestSpawned = true;
+    var chestSS = new createjs.SpriteSheet(queue.getResult("chestSS"));
+    items.chest = new createjs.Sprite(chestSS, "chestClosed");
+    items.chest.x = 10 * tileSize;
+    items.chest.y = 7 * tileSize;
+    stage.addChild(items.chest);
+}
+function endLevelThree() {
+    state.itemsSpawned = true;
+    stage.removeChild(items.chest);
+    var keySS = new createjs.SpriteSheet(queue.getResult("keySS"));
+    items.key = new createjs.Sprite(keySS, "key");
+    items.key.x = 10 * tileSize;
+    items.key.y = 7 * tileSize;
+    items.key.width = tileSize;
+    items.key.height = tileSize;
+    stage.addChild(items.key);
+
+    createjs.Tween.get(items.key, {loop: false})
+        .to({y: 4 * tileSize, rotation: 360}, 1000)
+        .call(function () {
+            state.tweenComplete = true;
+        });
+
+}
+/* =========================================================
+                        WIN / LOSE
+ ==========================================================*/
 
 function gameOver() {
     stage.removeAllChildren();
@@ -1264,6 +1325,7 @@ function gameOver() {
     gameOverContainer.height = 675;
     gameOverContainer.addChild(bg, gameOverText, restartText);
     stage.addChild(gameOverContainer);
+}
 function youWin() {
     stage.removeAllChildren();
     mobiles.guards = [];
@@ -1271,8 +1333,6 @@ function youWin() {
     state.tweenComplete = false;
     state.gameOver = false;
     state.youWin = true;
-
-
 
     var youWinContainer = new createjs.Container();
     youWinContainer.width = 900;
