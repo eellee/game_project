@@ -635,7 +635,7 @@ function transitionText (){
     tranDialogue.textContainer.addChild(tranDialogue.sb, tranDialogue.text);
     stage.addChild(tranDialogue.textContainer);
     //instructions
-    tranDialogue.helpWords = new createjs.Text("Press [enter] to read the wisemans words.", "20px Arial Black", "#ffffff");
+    tranDialogue.helpWords = new createjs.Text("Press [enter] to read the wise man's words.", "20px Arial Black", "#ffffff");
     tranDialogue.helpWords.textAlign = "center";
     tranDialogue.helpWords.x = stage.canvas.width / 2;
     tranDialogue.helpWords.y = stage.canvas.height - 100;
@@ -875,7 +875,7 @@ function staticLevel(){
         state.gamePaused = true;
         transitionText();
         }
-    } else {
+    else {
         runTransition();
     }
 }
