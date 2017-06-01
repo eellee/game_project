@@ -25,7 +25,8 @@ var settings = {
     enemyCount: 10,
     soldierLastMoved: [],
     energy: 0,
-    energySpeed: 2
+    energySpeed: 2,
+    obstacleCount: 1
 };
 var HUD = {
     key: {},
@@ -952,7 +953,7 @@ function updateTransitionText() {
 function addEnemiesSecond(){
     if (!state.levelComplete) {
         var enemiesSecond = new createjs.SpriteSheet(queue.getResult("enemiesSecond"));
-        for(var i= 0; i < 1; i++){
+        for(var i= 0; i < settings.obstacleCount; i++){
             var enemyOne = new createjs.Sprite(enemiesSecond, "rockSM");
             var enemySecond = new createjs.Sprite(enemiesSecond, "fireSM");
             var enemyThird = new createjs.Sprite(enemiesSecond, "ghostSM");
@@ -962,9 +963,9 @@ function addEnemiesSecond(){
             enemySecond.height = 45;
             enemyThird.width = 45;
             enemyThird.height = 45;
-            enemyOne.x = Math.floor(Math.random() * 900);
-            enemySecond.x = Math.floor(Math.random() * 900);
-            enemyThird.x = Math.floor(Math.random() * 900);
+            enemyOne.x = Math.floor(Math.random() * 800)+100;
+            enemySecond.x = Math.floor(Math.random() * 800)+100;
+            enemyThird.x = Math.floor(Math.random() * 800)+100;
             stage.addChild(enemyOne);
             mobiles.obstacles.push(enemyOne);
             stage.addChild(enemySecond);
@@ -980,7 +981,7 @@ function moveEnemiesSecond() {
         mobiles.obstacles[i].y += settings.enemySpeed * 10;
         if (mobiles.obstacles[i].y > stage.canvas.height) {
             mobiles.obstacles[i].y = Math.floor(Math.random() * 200);
-            mobiles.obstacles[i].x = Math.floor(Math.random() * 900);
+            mobiles.obstacles[i].x = Math.floor(Math.random() * 800)+100;
         }
     }
 }
@@ -990,7 +991,7 @@ function addEnergy() {
     mobiles.energySprite.height = 45;
     mobiles.energySprite.width = 45;
     mobiles.energySprite.regY = 45;
-    mobiles.energySprite.x = Math.floor(Math.random()*900);
+    mobiles.energySprite.x = Math.floor(Math.random()*800)+100;
     mobiles.energySprite.y = Math.floor(Math.random()*200);
     stage.addChild(mobiles.energySprite);
 }
@@ -998,7 +999,7 @@ function moveEnergy() {
     mobiles.energySprite.y += settings.energySpeed;
     if (mobiles.energySprite.y > stage.canvas.height) {
         mobiles.energySprite.y = Math.floor(Math.random() * 200);
-        mobiles.energySprite.x = Math.floor(Math.random() * 900);
+        mobiles.energySprite.x = Math.floor(Math.random() * 800)+100;
     }
 }
 function handleLevelTwoHits() {
@@ -1063,8 +1064,8 @@ function handleLevelTwoHits() {
 function levelTwoReward() {
     for (var i = mobiles.obstacles.length - 1; i >= 0; i--) {
         stage.removeChild(mobiles.obstacles[i]);
-        mobiles.obstacles = [];
     }
+    mobiles.obstacles = [];
     stage.removeChild(mobiles.energySprite);
     state.levelComplete = true;
 
@@ -1195,7 +1196,7 @@ function levelThreeHitTest() {
     //soldiers and weapons hitTest
     var numSoldiers = mobiles.soldiers.length;
 
-    if (numSoldiers == 0){
+    if (numSoldiers == 0 && player.isAlive){
         if (!state.rewardsHad)
         {
             levelThreeRewards();
@@ -1273,11 +1274,14 @@ function weaponsMoving(){
     }
 }
 function levelThreeRewards() {
+    stage.removeChild(items.chest);
     state.chestSpawned = true;
     var chestSS = new createjs.SpriteSheet(queue.getResult("chestSS"));
     items.chest = new createjs.Sprite(chestSS, "chestClosed");
     items.chest.x = 10 * tileSize;
     items.chest.y = 7 * tileSize;
+    items.chest.width = tileSize;
+    items.chest.height = tileSize;
     stage.addChild(items.chest);
 }
 function endLevelThree() {
@@ -1306,6 +1310,8 @@ function gameOver() {
     stage.removeAllChildren();
     mobiles.guards = [];
     mobiles.soldiers = [];
+    mobiles.obstacles = [];
+    mobiles.energySprite = {};
     state.tweenComplete = false;
     state.gameOver = true;
 
